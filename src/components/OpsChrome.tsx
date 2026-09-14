@@ -6,7 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { LogOut } from "lucide-react";
 import type { SessionUser } from "@/lib/types";
 import { closeViewAsTab, openViewAsTab, useConfirm } from "./ConfirmDialog";
-import { ActionProgress } from "./ActionProgress";
+import { ThemeToggle } from "./ThemeToggle";
 import { BrandMark } from "./BrandMark";
 
 export function OpsChrome({
@@ -97,6 +97,7 @@ export function OpsChrome({
           </p>
         </div>
         <div className="ident-right">
+          <ThemeToggle />
           <p className="last-fetch">
             {clock || "—"}
             <span className="pip" aria-hidden />
@@ -168,7 +169,6 @@ export function OpsChrome({
             </button>
           </nav>
         </div>
-        <ActionProgress overlay active={signingOut} label="SIGNING OUT" />
         {signingOut ? (
           <span className="sr-only" role="status">
             Signing out

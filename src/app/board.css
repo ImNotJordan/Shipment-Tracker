@@ -29,6 +29,30 @@
   border-bottom: 1px solid var(--seam);
 }
 
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--seam);
+  border-radius: 8px;
+  color: var(--ivory-dim);
+  transition: color 160ms ease, border-color 160ms ease;
+}
+
+.theme-toggle:hover {
+  color: var(--ivory);
+  border-color: var(--ivory);
+}
+
+.theme-toggle svg {
+  width: 14px;
+  height: 14px;
+}
+
 .ident-left {
   display: flex;
   align-items: center;
@@ -66,13 +90,129 @@
   color: var(--ivory);
 }
 
+/* Mono earns its place where characters must be told apart (tracking numbers,
+   emails, passwords) or where columns must line up (times, facts, rows). Inter
+   has proportional figures by default, so tabular-nums is not optional here. */
+.wordmark,
+.last-fetch,
+.ship-num,
+.ship-status,
+.fact,
+.hist-row,
+.hist-copy,
+.hist-place,
+.ops-row,
+.ops-row-static,
+.gate-aside h3,
+.gate label,
+.gate-field > label,
+.gate-reveal,
+.gate-abort,
+.gate-veil-label,
+.primary,
+input,
+textarea,
+select {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
 .wordmark {
+  position: relative;
   margin: 0;
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.04em;
   line-height: 1;
   color: var(--ivory);
+}
+
+.ident-slot {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+@keyframes ident-mark-in {
+  from {
+    opacity: 0;
+    transform: scale(0.78);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Silver sweep across the letterforms, angled so it climbs bottom-left to
+   top-right. Larger background-position moves the band left, so it counts
+   down. Runs once. */
+@keyframes wordmark-shine {
+  from {
+    background-position: 165% 0;
+  }
+  to {
+    background-position: -65% 0;
+  }
+}
+
+@keyframes wordmark-spark {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) rotate(-30deg);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.15) rotate(0deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.3) rotate(22deg);
+  }
+}
+
+.gate .ident-left .brand-mark {
+  animation: ident-mark-in 540ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.wordmark-spark {
+  position: absolute;
+  top: -5px;
+  right: -4px;
+  width: 11px;
+  height: 11px;
+  fill: var(--shine);
+  opacity: 0;
+  filter: drop-shadow(0 0 3px var(--shine));
+}
+
+.gate .wordmark-spark {
+  animation: wordmark-spark 760ms ease-in-out 2380ms both;
+}
+
+/* Only paint the text with a gradient where clipping to glyphs is supported —
+   otherwise transparent text would leave the wordmark invisible. */
+@supports (background-clip: text) or (-webkit-background-clip: text) {
+  .gate .ident-slot > .wordmark {
+    background-image: linear-gradient(
+      56deg,
+      var(--ivory) 0%,
+      var(--ivory) 38%,
+      var(--shine) 46%,
+      var(--shine) 54%,
+      var(--ivory) 62%,
+      var(--ivory) 100%
+    );
+    background-size: 260% 100%;
+    /* Must tile: with no-repeat the glyphs lose their paint the moment the
+       gradient slides past them, and transparent text vanishes. Both ends of
+       the ramp are ivory, so the seam is invisible. */
+    background-repeat: repeat-x;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: wordmark-shine 1500ms cubic-bezier(0.4, 0, 0.2, 1) 1500ms both;
+  }
 }
 
 .ident-pipe {
@@ -684,6 +824,158 @@ textarea:disabled,
   transform: scaleX(0);
 }
 
+/* Sign-in and sign-out loader: the same shipment story as the gate, but dense
+   and fast enough to read as activity. A 7s narrative would never finish
+   before the request did; this cycles in 2s.
+
+   Base styles are the static state — parcel, rail, destination — so a
+   reduced-motion viewer still gets a visible indicator when it appears. */
+/* Full-page veil: the page dims and blurs behind whichever story is playing. */
+.gate-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  /* Blur is applied inline in ActionProgress — see the note there. */
+  background: rgba(6, 9, 11, 0.86);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 220ms ease, visibility 0s linear 220ms;
+}
+
+.gate-veil[data-active="true"] {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 220ms ease, visibility 0s;
+}
+
+:root[data-theme="light"] .gate-hero,
+:root[data-theme="light"] .gate-veil {
+  --ivory: #eff0f0;
+  --ivory-dim: #c0c1c1;
+  --seam: #373e3d;
+  --shine: #ffffff;
+  color-scheme: dark;
+}
+
+.gate-veil-inner {
+  display: grid;
+  justify-items: center;
+  gap: 26px;
+}
+
+.gate-veil-label {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--ivory-dim);
+}
+
+.run-mini {
+  position: relative;
+  display: block;
+  --load: 26px;
+  width: 260px;
+  height: 26px;
+  color: var(--ivory-dim);
+}
+
+.run-mini-rail {
+  position: absolute;
+  left: 30px;
+  right: 30px;
+  top: 50%;
+  height: 1px;
+  background: var(--seam);
+}
+
+.run-mini-progress {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  background: var(--ivory-dim);
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: run-mini-progress 2000ms linear infinite both;
+}
+
+.run-mini > svg {
+  position: absolute;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  margin-top: -12px;
+}
+
+.run-mini-parcel {
+  left: 0;
+  animation: run-mini-parcel 2000ms linear infinite both;
+}
+
+.run-mini-truck {
+  left: 28px;
+  color: var(--ivory);
+  opacity: 0;
+  animation: run-mini-truck 2000ms linear infinite both;
+}
+
+.run-mini-pin {
+  right: 0;
+  animation: run-mini-pin 2000ms linear infinite both;
+}
+
+.run-mini-tick {
+  right: 0;
+  color: var(--live);
+  opacity: 0;
+  animation: run-mini-tick 2000ms linear infinite both;
+}
+
+@keyframes run-mini-parcel {
+  0% { opacity: 0; transform: translateX(0); }
+  8% { opacity: 1; transform: translateX(0); }
+  22% { opacity: 1; transform: translateX(var(--load)); }
+  28%, 100% { opacity: 0; transform: translateX(var(--load)); }
+}
+
+@keyframes run-mini-truck {
+  0%, 6% { opacity: 0; left: 28px; }
+  12%, 28% { opacity: 1; left: 28px; }
+  72% { opacity: 1; left: calc(100% - 52px); }
+  78%, 100% { opacity: 0; left: calc(100% - 52px); }
+}
+
+@keyframes run-mini-pin {
+  0%, 6% { opacity: 0; }
+  12%, 72% { opacity: 1; }
+  78%, 100% { opacity: 0; }
+}
+
+@keyframes run-mini-tick {
+  0%, 74% { opacity: 0; transform: scale(0.4); }
+  80% { opacity: 1; transform: scale(1.15); }
+  84%, 90% { opacity: 1; transform: scale(1); }
+  96%, 100% { opacity: 0; transform: scale(1.5); }
+}
+
+@keyframes run-mini-progress {
+  0%, 24% { transform: scaleX(0); }
+  72%, 92% { transform: scaleX(1); }
+  94%, 100% { transform: scaleX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run-mini-parcel,
+  .run-mini-truck,
+  .run-mini-pin,
+  .run-mini-tick,
+  .run-mini-progress {
+    animation: none;
+  }
+}
+
 .action-progress-ident {
   position: absolute;
   left: 0;
@@ -825,19 +1117,238 @@ textarea:disabled,
 }
 
 .gate-stage {
+  --gate-card: 420px;
+  --gate-gap: 24px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, var(--gate-card));
+  gap: var(--gate-gap);
+  padding: 24px;
   min-height: 0;
 }
 
 .gate-hero {
+  position: relative;
+  overflow: hidden;
   display: grid;
   place-items: center;
   align-content: center;
-  gap: 18px;
-  padding: 28px;
-  border-right: 1px solid var(--seam);
-  background: var(--ink);
+  gap: 20px;
+  padding: 32px;
+  border: 1px solid var(--seam);
+  border-radius: 20px;
+  background:
+    radial-gradient(110% 88% at 50% 4%, rgba(239, 240, 240, 0.045), transparent 62%),
+    linear-gradient(180deg, #101819 0%, #080c0e 100%);
+}
+
+.gate-sky {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* One shipment, looped: the rail opens from the centre, the parcel is loaded,
+   the truck runs it to the destination, the pin becomes a tick, the tick pops,
+   and the rail closes again. Every part shares one 7s master clock and is
+   phased in percentages, so nothing can drift out of step.
+
+   Base styles below are the STATIC composition — rail drawn, parcel and pin
+   present, truck and tick hidden. That is what a reduced-motion viewer sees
+   when the animations are switched off at the end of this block. */
+.gate-run {
+  position: relative;
+  width: min(440px, 80%);
+  height: 30px;
+  color: var(--ivory-dim);
+}
+
+.gate-run-rail {
+  position: absolute;
+  left: 26px;
+  right: 26px;
+  top: 50%;
+  height: 1px;
+  background: var(--seam);
+  transform-origin: center;
+  animation: run-rail 7000ms linear 1900ms infinite;
+}
+
+.gate-run-progress {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 100%;
+  background: var(--ivory-dim);
+  transform-origin: left center;
+  transform: scaleX(0);
+  animation: run-progress 7000ms linear 1900ms infinite;
+}
+
+.gate-run > svg {
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  margin-top: -9px;
+}
+
+.gate-run-origin {
+  left: 0;
+  animation: run-parcel 7000ms linear 1900ms infinite;
+}
+
+.gate-run-dest {
+  right: 0;
+  animation: run-pin 7000ms linear 1900ms infinite;
+}
+
+.gate-run-done {
+  right: 0;
+  color: var(--live);
+  opacity: 0;
+  animation: run-tick 7000ms linear 1900ms infinite;
+}
+
+.gate-run-truck {
+  left: 30px;
+  color: var(--ivory);
+  opacity: 0;
+  animation: run-truck 7000ms linear 1900ms infinite;
+}
+
+/* Rail opens from the centre and closes back into it. */
+@keyframes run-rail {
+  0% { transform: scaleX(0); }
+  8% { transform: scaleX(1); }
+  84% { transform: scaleX(1); }
+  92%, 100% { transform: scaleX(0); }
+}
+
+@keyframes run-progress {
+  0%, 24% { transform: scaleX(0); }
+  60%, 91% { transform: scaleX(1); }
+  92%, 100% { transform: scaleX(0); }
+}
+
+/* Parcel appears, slides the 26px into the truck, then is gone. */
+@keyframes run-parcel {
+  0%, 6% { opacity: 0; transform: translateX(0); }
+  11%, 14% { opacity: 1; transform: translateX(0); }
+  22% { opacity: 1; transform: translateX(26px); }
+  25%, 100% { opacity: 0; transform: translateX(26px); }
+}
+
+@keyframes run-truck {
+  0%, 6% { opacity: 0; left: 30px; }
+  11%, 25% { opacity: 1; left: 30px; }
+  60% { opacity: 1; left: calc(100% - 40px); }
+  65%, 100% { opacity: 0; left: calc(100% - 40px); }
+}
+
+@keyframes run-pin {
+  0%, 6% { opacity: 0; }
+  11%, 60% { opacity: 1; }
+  65%, 100% { opacity: 0; }
+}
+
+/* Lands, holds, then pops outward as it goes. */
+@keyframes run-tick {
+  0%, 61% { opacity: 0; transform: scale(0.4); }
+  67% { opacity: 1; transform: scale(1.18); }
+  70%, 76% { opacity: 1; transform: scale(1); }
+  83% { opacity: 0; transform: scale(1.7); }
+  100% { opacity: 0; transform: scale(0.4); }
+}
+
+/* Switched off, the base styles above stand on their own as a static diagram:
+   parcel, rail, destination. */
+@media (prefers-reduced-motion: reduce) {
+  .gate-run-rail,
+  .gate-run-progress,
+  .gate-run-origin,
+  .gate-run-dest,
+  .gate-run-done,
+  .gate-run-truck {
+    animation: none;
+  }
+}
+
+/* The card arrives, then its contents settle in sequence. Ordering is by
+   element type so an error paragraph appearing later cannot shift the delays. */
+@keyframes gate-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.gate-stage .gate-head,
+.gate-stage .gate-form > div,
+.gate-stage .gate-form > .busy-control,
+.gate-stage .gate-aside {
+  animation: gate-rise 520ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.gate-stage .gate-head { animation-delay: 1280ms; }
+.gate-stage .gate-form > div:nth-of-type(1) { animation-delay: 1360ms; }
+.gate-stage .gate-form > div:nth-of-type(2) { animation-delay: 1440ms; }
+.gate-stage .gate-form > div:nth-of-type(3) { animation-delay: 1520ms; }
+.gate-stage .gate-form > .busy-control { animation-delay: 1600ms; }
+.gate-stage .gate-aside { animation-delay: 1700ms; }
+
+.gate-form .primary {
+  transition: transform 150ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.gate-form .primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.gate-form .primary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* Sign-in accepted: the gate closes the way it opened, in reverse. */
+@keyframes gate-hero-exit {
+  to {
+    transform: translateX(calc((var(--gate-card) + var(--gate-gap)) / 2));
+  }
+}
+
+@keyframes gate-card-exit {
+  to {
+    opacity: 0;
+    transform: translateX(26px);
+  }
+}
+
+@keyframes gate-mark-exit {
+  to {
+    transform: scale(1.06);
+  }
+}
+
+.gate.is-leaving .gate-stage > .gate-hero {
+  animation: gate-hero-exit 620ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.gate.is-leaving .gate-stage > .gate-card {
+  animation: gate-card-exit 360ms cubic-bezier(0.65, 0, 1, 1) forwards;
+}
+
+.gate.is-leaving .gate-mark-well {
+  animation: gate-mark-exit 620ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+.gate-hero > .gate-mark-well,
+.gate-hero > .gate-copy {
+  position: relative;
+  z-index: 1;
 }
 
 .gate-mark-well {
@@ -846,22 +1357,11 @@ textarea:disabled,
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  background: var(--ink-2);
-  border: 1px solid var(--seam);
 }
 
 .gate-mark {
   width: 78%;
   height: auto;
-}
-
-.gate-live-bar {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 2px;
-  background: var(--amber);
 }
 
 .gate-copy {
@@ -871,6 +1371,151 @@ textarea:disabled,
   color: var(--ivory-dim);
   line-height: 1.5;
 }
+
+/* Gate intro: the mark holds centre as a loading screen, then slides left to
+   uncover the form. prefers-reduced-motion is handled globally in globals.css,
+   which collapses these to their end state. */
+@keyframes gate-hero-slide {
+  0%,
+  60% {
+    transform: translateX(calc((var(--gate-card) + var(--gate-gap)) / 2));
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes gate-mark-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  18% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes gate-card-in {
+  0%,
+  64% {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.gate-stage > .gate-hero {
+  animation: gate-hero-slide 1900ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.gate-stage .gate-mark-well {
+  animation: gate-mark-in 1900ms ease-out both;
+}
+
+.gate-stage > .gate-card {
+  animation: gate-card-in 1900ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* The mark draws itself: the route traces from origin to destination while the
+   petals bloom. Every target below is transform-free in the markup, so CSS
+   transforms cannot clobber a presentation attribute. */
+.gate-mark .mark-ring,
+.gate-mark .mark-origin,
+.gate-mark .mark-dest,
+.gate-mark .mark-bloom {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@keyframes mark-ring-sweep {
+  0% {
+    transform: rotate(-120deg);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(240deg);
+    opacity: 1;
+  }
+}
+
+@keyframes mark-pop {
+  0% {
+    transform: scale(0);
+  }
+  70% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes mark-route-draw {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes mark-bloom-in {
+  0% {
+    transform: scale(0.82);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes mark-petal-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.gate-mark .mark-ring {
+  animation: mark-ring-sweep 1150ms cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+
+.gate-mark .mark-origin {
+  animation: mark-pop 300ms cubic-bezier(0.2, 0.8, 0.2, 1) 60ms both;
+}
+
+.gate-mark .mark-route {
+  stroke-dasharray: 100;
+  animation: mark-route-draw 700ms cubic-bezier(0.4, 0, 0.2, 1) 240ms both;
+}
+
+.gate-mark .mark-dest {
+  animation: mark-pop 340ms cubic-bezier(0.2, 0.8, 0.2, 1) 880ms both;
+}
+
+.gate-mark .mark-bloom {
+  animation: mark-bloom-in 620ms cubic-bezier(0.2, 0.8, 0.2, 1) 420ms both;
+}
+
+.gate-mark .mark-petals > path {
+  animation: mark-petal-in 380ms ease-out both;
+}
+
+/* Bloom clockwise from the red petal at rotate(288deg), which sits upper-left.
+   DOM order is rotate 0/72/144/216/288, so the delays run 5,1,2,3,4. */
+.gate-mark .mark-petals > path:nth-child(5) { animation-delay: 420ms; }
+.gate-mark .mark-petals > path:nth-child(1) { animation-delay: 510ms; }
+.gate-mark .mark-petals > path:nth-child(2) { animation-delay: 600ms; }
+.gate-mark .mark-petals > path:nth-child(3) { animation-delay: 690ms; }
+.gate-mark .mark-petals > path:nth-child(4) { animation-delay: 780ms; }
 
 .gate-main .gate-card {
   width: min(420px, 100%);
@@ -882,18 +1527,6 @@ textarea:disabled,
   font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.18em;
-}
-
-.gate-field-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.gate-field-head label {
-  display: inline;
-  margin: 0;
 }
 
 .gate-reveal,
@@ -975,6 +1608,54 @@ a.primary {
   width: 100%;
 }
 
+.gate-field {
+  position: relative;
+}
+
+.gate-field > label {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  display: block;
+  margin: 0;
+  padding: 0 4px;
+  background: var(--ink-2);
+  color: var(--ivory-dim);
+  pointer-events: none;
+  transform: translateY(-50%);
+  transform-origin: left center;
+  transition:
+    top 170ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 170ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    color 170ms ease;
+}
+
+.gate-field > input:focus ~ label,
+.gate-field > input:not(:placeholder-shown) ~ label {
+  top: 0;
+  transform: translateY(-50%) scale(0.86);
+}
+
+.gate-field > input:focus ~ label {
+  color: var(--ivory);
+}
+
+/* An inset ring doubles the border without changing the box, so nothing
+   shifts on focus. Overrides the global amber :focus-visible outline. */
+.gate input:focus,
+.gate-field > input:focus {
+  border-color: var(--ivory);
+  box-shadow: inset 0 0 0 1px var(--ivory);
+  outline: none;
+  color: var(--ivory);
+  caret-color: var(--ivory);
+}
+
+/* Only fields that carry a reveal button reserve room for it. */
+.gate-field:has(.gate-reveal) > input {
+  padding-right: 60px;
+}
+
 .ops-form textarea { min-height: 140px; resize: vertical; }
 .ops-form textarea.ops-cc { min-height: 72px; }
 
@@ -1017,8 +1698,62 @@ a.primary {
   padding: 10px 12px;
 }
 
-.flash-bad { color: var(--danger); }
-.flash-ok { color: var(--live); }
+/* Doubled class keeps these above container rules like `.gate-card p`, which
+   otherwise repaints every flash in the card and hides the failure colour. */
+.flash.flash-bad { color: var(--danger); }
+.flash.flash-ok { color: var(--live); }
+/* Setup gap, not a rejection: the Honest Empty Rule puts this in dim ivory,
+   so red stays reserved for something the person actually got wrong. */
+.flash.flash-setup { color: var(--ivory-dim); }
+
+.gate-field-tools {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gate-field-tools svg {
+  width: 16px;
+  height: 16px;
+}
+
+.gate-caps {
+  display: flex;
+  align-items: center;
+  color: var(--ivory);
+}
+
+.gate-field .gate-reveal {
+  display: flex;
+  align-items: center;
+}
+
+.gate-aside {
+  margin-top: 30px;
+  padding-top: 22px;
+  border-top: 1px solid var(--seam);
+  display: grid;
+  gap: 14px;
+  font-size: 12px;
+}
+
+.gate-aside h3 {
+  margin: 0 0 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  color: var(--ivory-dim);
+}
+
+.gate-aside p {
+  margin: 0;
+  color: var(--ivory-dim);
+  line-height: 1.5;
+}
 
 .ops-toast {
   position: fixed;
@@ -1392,7 +2127,36 @@ button.ops-open {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 28px;
+  padding: 40px 34px;
+  border: 1px solid var(--seam);
+  border-radius: 20px;
+  background: var(--ink);
+}
+
+.gate-head {
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.gate-head h2 {
+  margin: 0 0 8px;
+  font-size: 23px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.gate-head p {
+  margin: 0;
+  color: var(--ivory-dim);
+}
+
+.gate-card .primary,
+.gate-form .primary,
+.gate input,
+.gate-field input,
+.gate-abort {
+  border-radius: 10px;
 }
 
 @media (max-width: 980px) {
@@ -1433,12 +2197,14 @@ button.ops-open {
     min-height: 42vh;
   }
   .ident-right { flex-wrap: wrap; justify-content: flex-end; }
+  .ident-owner { font-size: 12px; }
   .gate-stage {
+    --gate-card: 0px;
+    --gate-gap: 16px;
     grid-template-columns: 1fr;
+    padding: 16px;
   }
   .gate-hero {
-    border-right: 0;
-    border-bottom: 1px solid var(--seam);
     padding: 28px 18px;
   }
   .gate-mark-well {

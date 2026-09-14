@@ -1,6 +1,9 @@
 @import "tailwindcss";
-@import "@fontsource/iosevka/400.css";
-@import "@fontsource/iosevka/700.css";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/jetbrains-mono/400.css";
+@import "@fontsource/jetbrains-mono/700.css";
 @import "../../.impeccable/build/scaffold/layout.css";
 @import "./board.css";
 
@@ -14,7 +17,30 @@
   --amber: #e3b341;
   --live: #3ddc84;
   --danger: #d35a4a;
-  --font: "Iosevka", ui-monospace, monospace;
+  /* Prose reads in the sans; anything that must align in a column or be read
+     character by character reads in the mono. Swapping either family is a
+     one-line change here. */
+  --font: "Inter", system-ui, -apple-system, sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, monospace;
+  /* Bright stop inside the wordmark sweep; must contrast with --ivory. */
+  --shine: #ffffff;
+  color-scheme: dark;
+}
+
+/* Day mode. The gate banner and the loading veil stay dark on purpose — they
+   carry the silver mark, which needs a dark ground to read. */
+:root[data-theme="light"] {
+  --ink: #f2f4f4;
+  --ink-2: #e7eaea;
+  --panel: #ffffff;
+  --seam: #c3caca;
+  --ivory: #131b1d;
+  --ivory-dim: #586160;
+  --amber: #8a5d0c;
+  --live: #146c39;
+  --danger: #a63324;
+  --shine: #8e9795;
+  color-scheme: light;
 }
 
 @theme inline {
@@ -22,7 +48,7 @@
   --color-seam: var(--seam);
   --color-ivory: var(--ivory);
   --color-amber: var(--amber);
-  --font-mono: var(--font);
+  --font-mono: var(--font-data);
 }
 
 * { box-sizing: border-box; }
@@ -31,7 +57,7 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background: #10181a;
+  background: var(--ink);
   color: var(--ivory);
   font-family: var(--font);
   font-size: 13px;
@@ -49,10 +75,16 @@ body {
   outline-offset: 2px;
 }
 
+/* Field values are read character by character — emails, tracking numbers,
+   passwords — so they take the mono rather than inheriting the prose face. */
 input,
 textarea,
-button,
 select {
+  font-family: var(--font-data);
+  letter-spacing: 0.02em;
+}
+
+button {
   font-family: inherit;
   letter-spacing: inherit;
 }
@@ -84,11 +116,26 @@ button {
   background: #373e3d;
 }
 
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }

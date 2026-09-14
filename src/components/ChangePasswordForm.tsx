@@ -18,6 +18,7 @@ export function ChangePasswordForm({
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -45,29 +46,40 @@ export function ChangePasswordForm({
   }
 
   async function signOut() {
+    setSigningOut(true);
     setPending(true);
     try {
       await fetch("/api/auth/logout", { method: "POST" });
       router.refresh();
     } catch {
       setPending(false);
+      setSigningOut(false);
     }
   }
 
   return (
     <GateShell
-      pending={pending}
-      progressLabel={pending ? "SAVING PASSWORD" : "SIGNING IN"}
+      pending={pending && !signingOut}
+      progressLabel="SAVING PASSWORD"
       copy="Temporary password accepted. Set a password only you know, then your board opens."
     >
       <form className="gate-form" onSubmit={onSubmit} aria-busy={pending}>
-        <h2>Set password</h2>
-        <p>The invite password is temporary. Choose a new one to continue.</p>
+        <header className="gate-head">
+          <h2>Set password</h2>
+          <p>The invite password is temporary. Choose a new one to continue.</p>
+        </header>
         {error ? <p className="flash flash-bad">{error}</p> : null}
-        <label>
-          EMAIL
-          <input type="email" autoComplete="username" value={email} readOnly />
-        </label>
+        <div className="gate-field">
+          <input
+            id="account-email"
+            type="email"
+            autoComplete="username"
+            value={email}
+            placeholder=" "
+            readOnly
+          />
+          <label htmlFor="account-email">EMAIL</label>
+        </div>
         <GatePasswordField
           label="NEW PASSWORD"
           autoComplete="new-password"

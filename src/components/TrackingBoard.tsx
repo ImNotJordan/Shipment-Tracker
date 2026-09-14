@@ -7,8 +7,8 @@ import { RouteMap } from "./RouteMap";
 import { useRouter } from "next/navigation";
 import { homePath } from "@/lib/access";
 import type { PublicBoard, PublicShipment, SessionUser } from "@/lib/types";
+import { ThemeToggle } from "./ThemeToggle";
 import { ConfirmProvider, closeViewAsTab, useConfirm } from "./ConfirmDialog";
-import { ActionProgress } from "./ActionProgress";
 
 function formatTracking(value: string) {
   return value.replace(/\s+/g, "").replace(/(.{4})/g, "$1 ").trim();
@@ -221,6 +221,7 @@ function TrackingBoardInner({
           </p>
         </div>
         <div className="ident-right">
+          <ThemeToggle />
           <p className="last-fetch" data-region="last-fetch">
             LAST FETCH {lastFetch ? formatWhen(lastFetch) : clock}
             <span className="pip" aria-hidden />
@@ -247,7 +248,6 @@ function TrackingBoardInner({
               </button>
           ) : null}
         </div>
-        <ActionProgress overlay active={signingOut} label="SIGNING OUT" />
         {signingOut ? (
           <span className="sr-only" role="status">
             Signing out

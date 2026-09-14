@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ArrowBigUp, Check, Eye, EyeOff, MapPin, Package, Truck } from "lucide-react";
 import { ActionProgress } from "./ActionProgress";
 import { BrandMark } from "./BrandMark";
+import { GateMark } from "./GateMark";
+import { ThemeToggle } from "./ThemeToggle";
 import { pulsePanel } from "@/lib/ops-motion";
 
 function GateClock() {
@@ -48,11 +51,39 @@ export function GatePasswordField({
   required?: boolean;
 }) {
   const [visible, setVisible] = useState(false);
+  const [caps, setCaps] = useState(false);
   const id = `${label.toLowerCase().replace(/\s+/g, "-")}-field`;
   return (
-    <div className="gate-field">
-      <span className="gate-field-head">
-        <label htmlFor={id}>{label}</label>
+    <div
+      className="gate-field"
+      onBlur={(event) => {
+        // Tabbing or clicking onto the reveal button is still inside the field,
+        // so only drop the caps hint when focus actually leaves.
+        if (!event.currentTarget.contains(event.relatedTarget)) setCaps(false);
+      }}
+    >
+      <input
+        id={id}
+        type={visible ? "text" : "password"}
+        autoComplete={autoComplete}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onKeyDown={(event) => setCaps(event.getModifierState("CapsLock"))}
+        onKeyUp={(event) => setCaps(event.getModifierState("CapsLock"))}
+        placeholder=" "
+        required={required}
+        disabled={disabled}
+      />
+      <label htmlFor={id}>{label}</label>
+      <span className="gate-field-tools">
+        {caps ? (
+          <span className="gate-caps" title="Caps lock is on">
+            <ArrowBigUp strokeWidth={2.5} aria-hidden />
+            <span className="sr-only" role="status">
+              Caps lock is on
+            </span>
+          </span>
+        ) : null}
         <button
           type="button"
           className="gate-reveal"
@@ -61,18 +92,9 @@ export function GatePasswordField({
           aria-pressed={visible}
           aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
         >
-          {visible ? "HIDE" : "SHOW"}
+          {visible ? <EyeOff aria-hidden /> : <Eye aria-hidden />}
         </button>
       </span>
-      <input
-        id={id}
-        type={visible ? "text" : "password"}
-        autoComplete={autoComplete}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        required={required}
-        disabled={disabled}
-      />
     </div>
   );
 }
@@ -80,11 +102,13 @@ export function GatePasswordField({
 export function GateShell({
   children,
   pending = false,
-  copy = "Company-scoped FedEx tracking. Sign in to open only your board.",
+  leaving = false,
+  copy = "Company-scoped FedEx tracking.",
   progressLabel = "SIGNING IN",
 }: {
   children: ReactNode;
   pending?: boolean;
+  leaving?: boolean;
   copy?: string;
   progressLabel?: string;
 }) {
@@ -95,13 +119,22 @@ export function GateShell({
   }, []);
 
   return (
-    <main className="gate">
+    <main className={leaving ? "gate is-leaving" : "gate"}>
       <header className="ident">
         <div className="ident-left">
           <BrandMark />
-          <h1 className="wordmark">LIVE BOARD</h1>
+          <div className="ident-slot">
+            <h1 className="wordmark">
+              LIVE&nbsp;BOARD
+              {/* Glint on the top-right tip of the D, timed to the sweep. */}
+              <svg className="wordmark-spark" viewBox="0 0 24 24" aria-hidden>
+                <path d="M12 0C12 6.6 17.4 12 24 12C17.4 12 12 17.4 12 24C12 17.4 6.6 12 0 12C6.6 12 12 6.6 12 0Z" />
+              </svg>
+            </h1>
+          </div>
         </div>
         <div className="ident-right">
+          <ThemeToggle />
           <GateClock />
         </div>
         <ActionProgress overlay active={pending} label={progressLabel} />
@@ -109,15 +142,20 @@ export function GateShell({
       <div className="gate-stage">
         <section className="gate-hero">
           <div className="gate-mark-well" ref={markRef}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/tracking-mark-b-route.svg"
-              alt=""
-              className="gate-mark"
-            />
-            <span className="gate-live-bar" aria-hidden />
+            <GateMark />
           </div>
           <p className="gate-copy">{copy}</p>
+          {/* One shipment, origin to delivered. Symbolic only — no tracking
+              number, company or time, so it states nothing it cannot know. */}
+          <div className="gate-run" aria-hidden>
+            <span className="gate-run-rail">
+              <span className="gate-run-progress" />
+            </span>
+            <Package className="gate-run-origin" strokeWidth={1.5} />
+            <MapPin className="gate-run-dest" strokeWidth={1.5} />
+            <Check className="gate-run-done" strokeWidth={2.5} />
+            <Truck className="gate-run-truck" strokeWidth={1.5} />
+          </div>
         </section>
         <section className="gate-card">{children}</section>
       </div>

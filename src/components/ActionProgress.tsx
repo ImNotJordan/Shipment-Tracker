@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
+import { Check, MapPin, Package, Truck } from "lucide-react";
 
 export function ActionProgress({
   active,
@@ -13,6 +14,37 @@ export function ActionProgress({
   value?: number;
   overlay?: boolean;
 }) {
+  if (overlay) {
+    return (
+      <div
+        className="gate-veil"
+        data-active={active ? "true" : "false"}
+        // Set inline on purpose: the build strips backdrop-filter from the
+        // stylesheet and emits only the -webkit- alias, which does not take.
+        style={{ backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
+        role="status"
+        aria-live="polite"
+      >
+        {/* Mounted only while active so the artwork animates from its first
+            frame each time, rather than showing a finished state. */}
+        {active ? (
+          <div className="gate-veil-inner">
+            <span className="run-mini" aria-hidden>
+              <span className="run-mini-rail">
+                <span className="run-mini-progress" />
+              </span>
+              <Package className="run-mini-parcel" strokeWidth={1.5} />
+              <Truck className="run-mini-truck" strokeWidth={1.5} />
+              <MapPin className="run-mini-pin" strokeWidth={1.5} />
+              <Check className="run-mini-tick" strokeWidth={2.5} />
+            </span>
+            <p className="gate-veil-label">{label}</p>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   const determinate = typeof value === "number";
   const pct = determinate ? Math.max(0, Math.min(100, Math.round(value * 100))) : undefined;
   const meterStyle = determinate
