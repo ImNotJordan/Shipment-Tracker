@@ -127,6 +127,77 @@ select {
   color: var(--ivory);
 }
 
+/* Sheen rides the petals and settles on the upper-right one, where the glint
+   fires. Starts only once the mark has drawn and the panel has landed. */
+@keyframes mark-sheen-sweep {
+  0% {
+    transform: translateX(-340px);
+    opacity: 0;
+  }
+  14%,
+  86% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+
+@keyframes mark-glint-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) rotate(-28deg);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.15) rotate(0deg);
+  }
+  74% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.5) rotate(16deg);
+  }
+}
+
+.gate-mark .mark-sheen {
+  transform-box: view-box;
+  animation: mark-sheen-sweep 1400ms cubic-bezier(0.35, 0, 0.3, 1) 2000ms both;
+}
+
+.gate-mark .mark-glint {
+  fill: #ffffff;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  /* Two layers: a tight core the eye reads as the source, and a wider bloom
+     for the light it throws. One blur alone reads as a blurry shape. */
+  filter:
+    drop-shadow(0 0 4px rgba(255, 255, 255, 0.95))
+    drop-shadow(0 0 14px rgba(238, 241, 244, 0.45));
+  animation: mark-glint-pop 720ms cubic-bezier(0.2, 0.8, 0.2, 1) 3260ms both;
+}
+
+.ident-slot {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+@keyframes ident-mark-in {
+  from {
+    opacity: 0;
+    transform: scale(0.78);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .ident-slot {
   display: flex;
   align-items: center;
@@ -147,73 +218,14 @@ select {
 /* Silver sweep across the letterforms, angled so it climbs bottom-left to
    top-right. Larger background-position moves the band left, so it counts
    down. Runs once. */
-@keyframes wordmark-shine {
-  from {
-    background-position: 165% 0;
-  }
-  to {
-    background-position: -65% 0;
-  }
-}
 
-@keyframes wordmark-spark {
-  0% {
-    opacity: 0;
-    transform: scale(0.2) rotate(-30deg);
-  }
-  45% {
-    opacity: 1;
-    transform: scale(1.15) rotate(0deg);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(0.3) rotate(22deg);
-  }
-}
 
 .gate .ident-left .brand-mark {
   animation: ident-mark-in 540ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-.wordmark-spark {
-  position: absolute;
-  top: -5px;
-  right: -4px;
-  width: 11px;
-  height: 11px;
-  fill: var(--shine);
-  opacity: 0;
-  filter: drop-shadow(0 0 3px var(--shine));
-}
 
-.gate .wordmark-spark {
-  animation: wordmark-spark 760ms ease-in-out 2380ms both;
-}
 
-/* Only paint the text with a gradient where clipping to glyphs is supported —
-   otherwise transparent text would leave the wordmark invisible. */
-@supports (background-clip: text) or (-webkit-background-clip: text) {
-  .gate .ident-slot > .wordmark {
-    background-image: linear-gradient(
-      56deg,
-      var(--ivory) 0%,
-      var(--ivory) 38%,
-      var(--shine) 46%,
-      var(--shine) 54%,
-      var(--ivory) 62%,
-      var(--ivory) 100%
-    );
-    background-size: 260% 100%;
-    /* Must tile: with no-repeat the glyphs lose their paint the moment the
-       gradient slides past them, and transparent text vanishes. Both ends of
-       the ramp are ivory, so the seam is invisible. */
-    background-repeat: repeat-x;
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    animation: wordmark-shine 1500ms cubic-bezier(0.4, 0, 0.2, 1) 1500ms both;
-  }
-}
 
 .ident-pipe {
   color: var(--ivory-dim);
@@ -855,7 +867,6 @@ textarea:disabled,
   --ivory: #eff0f0;
   --ivory-dim: #c0c1c1;
   --seam: #373e3d;
-  --shine: #ffffff;
   color-scheme: dark;
 }
 

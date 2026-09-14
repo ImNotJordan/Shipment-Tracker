@@ -29,6 +29,30 @@ export function GateMark() {
             <filter id="softB" x="-30%" y="-30%" width="160%" height="160%">
               <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="#0b1116" floodOpacity="0.26" />
             </filter>
+            {/* The sheen is a moving gradient clipped to the petal strokes, so the
+                light rides the metal instead of washing over the whole panel. */}
+            <mask id="sheenMaskB">
+              <g
+                transform="translate(170,170) scale(0.85)"
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth="12"
+                strokeLinejoin="round"
+              >
+                <path d="M0,-22 C-24,-48 -24,-80 0,-102 C24,-80 24,-48 0,-22 Z" transform="rotate(0)" />
+                <path d="M0,-22 C-24,-48 -24,-80 0,-102 C24,-80 24,-48 0,-22 Z" transform="rotate(72)" />
+                <path d="M0,-22 C-24,-48 -24,-80 0,-102 C24,-80 24,-48 0,-22 Z" transform="rotate(144)" />
+                <path d="M0,-22 C-24,-48 -24,-80 0,-102 C24,-80 24,-48 0,-22 Z" transform="rotate(216)" />
+                <path d="M0,-22 C-24,-48 -24,-80 0,-102 C24,-80 24,-48 0,-22 Z" transform="rotate(288)" />
+              </g>
+            </mask>
+            <linearGradient id="sheenB" x1="0" y1="1" x2="1" y2="0">
+              <stop offset="0.28" stopColor="#05080a" stopOpacity="0" />
+              <stop offset="0.42" stopColor="#05080a" stopOpacity="0.48" />
+              <stop offset="0.5" stopColor="#ffffff" stopOpacity="0.92" />
+              <stop offset="0.58" stopColor="#05080a" stopOpacity="0.32" />
+              <stop offset="0.72" stopColor="#05080a" stopOpacity="0" />
+            </linearGradient>
           </defs>
 
           <circle
@@ -95,6 +119,19 @@ export function GateMark() {
               transform="rotate(288)"
             />
             </g>
+          </g>
+
+          <g mask="url(#sheenMaskB)">
+            <rect className="mark-sheen" x="0" y="0" width="340" height="340" fill="url(#sheenB)" />
+          </g>
+
+          {/* Beside the upper-right flank of the rotate(0) petal — the one
+              pointing straight up — where the sweep now lands. */}
+          <g transform="translate(190,94)">
+            <path
+              className="mark-glint"
+              d="M0,-18 C0,-5.4 5.4,0 18,0 C5.4,0 0,5.4 0,18 C0,5.4 -5.4,0 -18,0 C-5.4,0 0,-5.4 0,-18 Z"
+            />
           </g>
         </svg>
   );

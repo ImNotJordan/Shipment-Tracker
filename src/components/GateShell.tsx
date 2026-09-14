@@ -124,13 +124,7 @@ export function GateShell({
         <div className="ident-left">
           <BrandMark />
           <div className="ident-slot">
-            <h1 className="wordmark">
-              LIVE&nbsp;BOARD
-              {/* Glint on the top-right tip of the D, timed to the sweep. */}
-              <svg className="wordmark-spark" viewBox="0 0 24 24" aria-hidden>
-                <path d="M12 0C12 6.6 17.4 12 24 12C17.4 12 12 17.4 12 24C12 17.4 6.6 12 0 12C6.6 12 12 6.6 12 0Z" />
-              </svg>
-            </h1>
+            <h1 className="wordmark">LIVE&nbsp;BOARD</h1>
           </div>
         </div>
         <div className="ident-right">
