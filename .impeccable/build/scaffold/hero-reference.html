@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Scaffold reference: comp-1-tiles.png</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Iosevka+Charon+Mono:wght@700&display=swap">
+  <link rel="stylesheet" href="layout.css">
+  <style>html,body{margin:0}body{background:#10181a}.region{box-sizing:border-box}.region.text p{white-space:pre-wrap}</style>
+</head>
+<body>
+<!-- Reference only. Every region sits at its measured box inside a comp-aspect frame. Take the boxes (layout.css), keep your own semantic structure. -->
+<main class="comp-frame" style="max-width:1280px">
+  <div class="r-ident-bar region chrome" data-region="ident-bar"><!-- Full-width graphite top bar with 1px bottom seam holding the wordmark, live-board label, and last-fetch clock. --></div>
+  <div class="r-wordmark region text" data-region="wordmark"><!-- RONIN in compact ivory caps. --><p style="font-size:var(--r-wordmark-font);font-family:var(--r-wordmark-family),sans-serif;font-weight:var(--r-wordmark-weight);line-height:1.05;margin:0">wordmark</p></div>
+  <div class="r-live-board-label region text" data-region="live-board-label"><!-- LIVE BOARD label to the right of the wordmark. --><p style="font-size:var(--r-live-board-label-font);line-height:1.05;margin:0">live-board-label</p></div>
+  <div class="r-last-fetch region text" data-region="last-fetch"><!-- LAST FETCH 10:24:37 UTC with a green live pip. --><p style="font-size:var(--r-last-fetch-font);line-height:1.05;margin:0">last-fetch</p></div>
+  <div class="r-shipments-head region text" data-region="shipments-head"><!-- SHIPMENTS header with count 24 and a filter glyph. --><p style="font-size:var(--r-shipments-head-font);line-height:1.05;margin:0">shipments-head</p></div>
+  <div class="r-shipments-list region control" data-region="shipments-list"><!-- Selectable tracking-number rows; selected row uses amber pip and amber figures; status words IN TRANSIT / DELIVERED / EXCEPTION at the right of each row.: rebuild the control's chrome from the crop (comp-spec.mjs --crop shipments-list); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-shipments-tools region control" data-region="shipments-tools"><!-- SORT and FILTER text buttons on a 1px top seam.: rebuild the control's chrome from the crop (comp-spec.mjs --crop shipments-tools); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-map-title region text" data-region="map-title"><!-- LIVE ROUTE TRACKING heading over the map. --><p style="line-height:1.05;margin:0">map-title</p></div>
+  <div class="r-map-west region control" data-region="map-west"><!-- Google Map west extent: Pacific to Rockies, dark basemap, city labels; runtime Google Maps, not a shipped raster.: rebuild the control's chrome from the crop (comp-spec.mjs --crop map-west); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-map-east region control" data-region="map-east"><!-- Google Map east extent with the amber plotted course LA–Phoenix–Dallas–Memphis and IN TRANSIT current-position mark; runtime Google Maps.: rebuild the control's chrome from the crop (comp-spec.mjs --crop map-east); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-map-credit region text" data-region="map-credit"><!-- Google Maps attribution. --><p style="font-size:var(--r-map-credit-font);line-height:1.05;margin:0">map-credit</p></div>
+  <div class="r-map-legend region chrome" data-region="map-legend"><!-- Amber polyline swatch and IN TRANSIT legend. --></div>
+  <div class="r-map-tools region control" data-region="map-tools"><!-- Minus, plus, and RESET map controls.: rebuild the control's chrome from the crop (comp-spec.mjs --crop map-tools); its ink box, border, fill, radius, and label size are the comp's --></div>
+  <div class="r-facts-title region text" data-region="facts-title"><!-- SHIPMENT FACTS heading. --><p style="font-size:var(--r-facts-title-font);line-height:1.05;margin:0">facts-title</p></div>
+  <div class="r-facts-grid region text" data-region="facts-grid"><!-- Key-value shipment facts: tracking number, status, service, weight, dimensions, dates, origin, dest, consignee, pieces, special instructions. --><p style="font-size:var(--r-facts-grid-font);line-height:1.05;margin:0">facts-grid</p></div>
+  <div class="r-history-title region text" data-region="history-title"><!-- TRAVEL HISTORY heading. --><p style="font-size:var(--r-history-title-font);line-height:1.05;margin:0">history-title</p></div>
+  <div class="r-history-list region text" data-region="history-list"><!-- Vertical timed scan log with a 1px spine, hollow nodes, and an amber current IN TRANSIT node. --><p style="font-size:var(--r-history-list-font);line-height:1.05;margin:0">history-list</p></div>
+</main>
+</body>
+</html>

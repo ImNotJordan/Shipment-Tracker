@@ -1,0 +1,5 @@
+{
+  "prompt": "Ronin live tracking board as a harbor chart table: hydrographic paper, glassine tracking slips, vermillion course on a measured map, shipment facts and timed travel history.",
+  "model": "cursor-generate-image",
+  "aspect": "16:9"
+}

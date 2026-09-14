@@ -1,0 +1,95 @@
+@import "tailwindcss";
+@import "@fontsource/iosevka/400.css";
+@import "@fontsource/iosevka/700.css";
+@import "../../.impeccable/build/scaffold/layout.css";
+@import "./board.css";
+
+:root {
+  --ink: #10181a;
+  --ink-2: #0a0c0f;
+  --panel: #10181a;
+  --seam: #373e3d;
+  --ivory: #eff0f0;
+  --ivory-dim: #c0c1c1;
+  --amber: #e3b341;
+  --live: #3ddc84;
+  --danger: #d35a4a;
+  --font: "Iosevka", ui-monospace, monospace;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-seam: var(--seam);
+  --color-ivory: var(--ivory);
+  --color-amber: var(--amber);
+  --font-mono: var(--font);
+}
+
+* { box-sizing: border-box; }
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: #10181a;
+  color: var(--ivory);
+  font-family: var(--font);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--amber);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 1px solid var(--amber);
+  outline-offset: 2px;
+}
+
+input,
+textarea,
+button,
+select {
+  font-family: inherit;
+  letter-spacing: inherit;
+}
+
+input,
+textarea,
+select {
+  caret-color: var(--amber);
+  background: var(--ink-2);
+  color: var(--ivory);
+  border: 1px solid var(--seam);
+  border-radius: 0;
+}
+
+button {
+  cursor: pointer;
+}
+
+.console-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.console-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.console-scroll::-webkit-scrollbar-thumb {
+  background: #373e3d;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

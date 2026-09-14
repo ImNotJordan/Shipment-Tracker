@@ -1,0 +1,238 @@
+{
+  "tool": "build-phase",
+  "version": 2,
+  "startedAt": "2026-09-13T09:23:39.431Z",
+  "comp": ".impeccable/mocks/comp-1-tiles.png",
+  "direction": "9bae9be7",
+  "breakpoint": "1280x720",
+  "artifact": null,
+  "phase": "hero",
+  "phases": {
+    "comps": {
+      "status": "closed",
+      "openedAt": "2026-09-13T09:23:39.431Z",
+      "closedAt": "2026-09-13T09:26:45.951Z",
+      "attempts": 2,
+      "notes": [],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "3 comps, 1 approved",
+        "approved": ".impeccable/mocks/comp-1-tiles.png",
+        "at": "2026-09-13T09:26:45.951Z"
+      },
+      "forced": null
+    },
+    "spec": {
+      "status": "closed",
+      "openedAt": "2026-09-13T09:26:46.040Z",
+      "closedAt": "2026-09-13T09:29:02.521Z",
+      "attempts": 1,
+      "notes": [],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "17 regions, 0 plates, 10 text regions measured",
+        "at": "2026-09-13T09:29:02.519Z"
+      },
+      "forced": null
+    },
+    "plates": {
+      "status": "closed",
+      "openedAt": "2026-09-13T09:29:02.521Z",
+      "closedAt": "2026-09-13T09:29:12.061Z",
+      "attempts": 1,
+      "notes": [],
+      "gate": {
+        "ok": true,
+        "reasons": [],
+        "summary": "no plates owed",
+        "at": "2026-09-13T09:29:12.061Z"
+      },
+      "forced": null
+    },
+    "hero": {
+      "status": "open",
+      "openedAt": "2026-09-13T09:29:12.061Z",
+      "closedAt": null,
+      "attempts": 1,
+      "notes": [],
+      "gate": {
+        "ok": false,
+        "reasons": [
+          "hero overall 50.0% < 72% (structure 55%, color 63%, detail 27%)",
+          "region wordmark is missing (detail 8%, structure 42%): the comp shows material the build does not",
+          "region live-board-label is missing (detail 6%, structure 47%): the comp shows material the build does not",
+          "region last-fetch is missing (detail 7%, structure 51%): the comp shows material the build does not",
+          "region shipments-list is missing (detail 13%, structure 46%): the comp shows material the build does not",
+          "region shipments-tools is missing (detail 5%, structure 73%): the comp shows material the build does not",
+          "region map-title is missing (detail 4%, structure 83%): the comp shows material the build does not",
+          "region map-credit is missing (detail 0%, structure 63%): the comp shows material the build does not",
+          "region map-legend is missing (detail 5%, structure 77%): the comp shows material the build does not",
+          "region facts-title is missing (detail 0%, structure 54%): the comp shows material the build does not",
+          "region facts-grid is missing (detail 1%, structure 55%): the comp shows material the build does not",
+          "region history-list is missing (detail 9%, structure 50%): the comp shows material the build does not",
+          "region shipments-head (text) is contradicted (structure 31%, detail added 31%): the composition of this text region differs from the comp; re-derive it from the spec box",
+          "region map-west (control) is contradicted (structure 59%, detail added 22%): this control does not read as the comp's: rebuild its chrome from the crop (border, fill, radius, chevron or arrow, label size) rather than from a component default",
+          "region map-east (control) is contradicted (structure 49%, detail added 16%): this control does not read as the comp's: rebuild its chrome from the crop (border, fill, radius, chevron or arrow, label size) rather than from a component default",
+          "control map-tools drifts to 53% (structure 61%, color 69%): its chrome differs from the comp's; open .impeccable/review/diff/hero/regions/map-tools.png and match the border, fill, radius, chevron or arrow, and label size",
+          "region map-tools: its ink sits in a 64x16px box in the comp and 51x14px in the build (padding, row height, or size); match the box, not only the position",
+          "READINGS, each one CSS edit (8):",
+          "text history-title: letter-spacing is wider than the comp's (gap 0.416 vs 0.137 of the cap height); set letter-spacing to close it by about 3px",
+          "text history-title: 1 line in the build, 3 in the comp; the measure (max-width, font-size, letter-spacing) wraps it differently, so the block is a different shape",
+          "text live-board-label: the face renders 46% heavier than the comp's (ink density 0.85 vs 0.58); drop a weight step or use the ranked face",
+          "text facts-title: ink is #4b95c5 in the build, #505354 in the comp; use the comp's colour",
+          "text facts-grid: ink is #631818 in the build, #e2e3e4 in the comp; use the comp's colour",
+          "text last-fetch: it starts 100px further right than in the comp",
+          "chrome ident-bar: its rule sits 2px into the box in the comp and 62px in the build (+60px), so the strip is taller than the comp's; match the height, not only the position",
+          "chrome map-legend: its rule sits 1px into the box in the comp and 28px in the build (+27px), so the strip is taller than the comp's; match the height, not only the position"
+        ],
+        "summary": "hero 50% (drift)",
+        "score": 0.4999,
+        "verdict": "drift",
+        "report": ".impeccable/review/diff/hero/report.json",
+        "sideBySide": "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/side-by-side.png",
+        "worst": [
+          "shipments-head contradicted 34%",
+          "live-board-label missing 37%",
+          "wordmark missing 39%"
+        ],
+        "worstIds": [
+          "shipments-head",
+          "live-board-label",
+          "wordmark"
+        ],
+        "worstCrops": [
+          {
+            "id": "shipments-head",
+            "verdict": "contradicted",
+            "score": {
+              "overall": 0.3389,
+              "structure": 0.3105,
+              "color": 0.4709,
+              "colorIntersection": 0.0755,
+              "paletteMatch": 0.6838,
+              "detail": 0.0662,
+              "detailRaw": 0.2224,
+              "detailAdded": 0.3125,
+              "bands": 0.56
+            },
+            "file": ".impeccable/review/diff/hero/regions/shipments-head.png"
+          },
+          {
+            "id": "live-board-label",
+            "verdict": "missing",
+            "score": {
+              "overall": 0.3676,
+              "structure": 0.4746,
+              "color": 0.4844,
+              "colorIntersection": 0.0147,
+              "paletteMatch": 0.7372,
+              "detail": 0.0618,
+              "detailRaw": 0.1295,
+              "detailAdded": 0.1354,
+              "bands": 0
+            },
+            "file": ".impeccable/review/diff/hero/regions/live-board-label.png"
+          },
+          {
+            "id": "wordmark",
+            "verdict": "missing",
+            "score": {
+              "overall": 0.3896,
+              "structure": 0.4153,
+              "color": 0.4949,
+              "colorIntersection": 0.0459,
+              "paletteMatch": 0.7367,
+              "detail": 0.0768,
+              "detailRaw": 0.1757,
+              "detailAdded": 0.1979,
+              "bands": 0.4667
+            },
+            "file": ".impeccable/review/diff/hero/regions/wordmark.png"
+          }
+        ],
+        "regionVerdicts": {
+          "ident-bar": "drift",
+          "wordmark": "missing",
+          "live-board-label": "missing",
+          "last-fetch": "missing",
+          "shipments-head": "contradicted",
+          "shipments-list": "missing",
+          "shipments-tools": "missing",
+          "map-title": "missing",
+          "map-west": "contradicted",
+          "map-east": "contradicted",
+          "map-credit": "missing",
+          "map-legend": "missing",
+          "map-tools": "drift",
+          "facts-title": "missing",
+          "facts-grid": "missing",
+          "history-title": "drift",
+          "history-list": "missing"
+        },
+        "at": "2026-09-13T09:57:13.764Z"
+      },
+      "forced": null,
+      "readingsSeen": {
+        "text live-board-label: cap height 7.3px in the build, 11.4px in the comp (-36%); set font-size so the cap height renders at 11.4px": 2,
+        "text last-fetch: cap height 8.3px in the build, 10.7px in the comp (-22%); set font-size so the cap height renders at 10.7px": 2,
+        "text history-title: letter-spacing is wider than the comp's (gap 0.413 vs 0.137 of the cap height); set letter-spacing to close it by about 3px": 2,
+        "text history-title: 1 line in the build, 3 in the comp; the measure (max-width, font-size, letter-spacing) wraps it differently, so the block is a different shape": 3,
+        "text shipments-head: ink is #3d729d in the build, #bebfc0 in the comp; use the comp's colour": 2,
+        "text facts-title: ink is #4778a7 in the build, #505354 in the comp; use the comp's colour": 2,
+        "text facts-grid: ink is #4878a8 in the build, #e2e3e4 in the comp; use the comp's colour": 2,
+        "text history-list: ink is #94a6a8 in the build, #e0e1e2 in the comp; use the comp's colour": 2,
+        "text last-fetch: it starts 89px further right than in the comp": 2,
+        "text history-title: its first line starts 39px lower than in the comp (45px vs 6px into the region box); the spacing above it is too large": 2,
+        "chrome ident-bar: its rule sits 2px into the box in the comp and 62px in the build (+60px), so the strip is taller than the comp's; match the height, not only the position": 3,
+        "chrome map-legend: its rule sits 1px into the box in the comp and 23px in the build (+22px), so the strip is taller than the comp's; match the height, not only the position": 2,
+        "text history-title: letter-spacing is wider than the comp's (gap 0.416 vs 0.137 of the cap height); set letter-spacing to close it by about 3px": 1,
+        "text live-board-label: the face renders 46% heavier than the comp's (ink density 0.85 vs 0.58); drop a weight step or use the ranked face": 1,
+        "text facts-title: ink is #4b95c5 in the build, #505354 in the comp; use the comp's colour": 1,
+        "text facts-grid: ink is #631818 in the build, #e2e3e4 in the comp; use the comp's colour": 1,
+        "text last-fetch: it starts 100px further right than in the comp": 1,
+        "chrome map-legend: its rule sits 1px into the box in the comp and 28px in the build (+27px), so the strip is taller than the comp's; match the height, not only the position": 1
+      },
+      "records": 2
+    },
+    "sections": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    },
+    "motion": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    },
+    "responsive": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    },
+    "review": {
+      "status": "pending",
+      "openedAt": null,
+      "closedAt": null,
+      "attempts": 0,
+      "notes": [],
+      "gate": null,
+      "forced": null
+    }
+  },
+  "finish": null,
+  "plates": {}
+}

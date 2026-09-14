@@ -1,0 +1,232 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-13T09:58:00.000Z",
+  "title": "Design System: Live Board",
+  "extensions": {
+    "colorMeta": {
+      "ink": {
+        "role": "neutral",
+        "displayName": "Graphite Night",
+        "canonical": "#10181a",
+        "tonalRamp": ["#0a0c0d", "#10181a", "#1a2528", "#2a3a3e", "#4a5c60", "#7a8c90", "#b4c0c2", "#e8eeef"]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Void Well",
+        "canonical": "#0a0c0f",
+        "tonalRamp": ["#050608", "#0a0c0f", "#16181c", "#282c32", "#4a4e54", "#7a7e84", "#b4b6ba", "#e8e9eb"]
+      },
+      "seam": {
+        "role": "neutral",
+        "displayName": "Seam Oxide",
+        "canonical": "#373e3d",
+        "tonalRamp": ["#121615", "#1c2221", "#2a3231", "#373e3d", "#5a6261", "#8a9291", "#c4c8c7", "#eef0f0"]
+      },
+      "ivory": {
+        "role": "neutral",
+        "displayName": "Console Ivory",
+        "canonical": "#eff0f0",
+        "tonalRamp": ["#1a1b1b", "#3a3c3c", "#5c5e5e", "#8a8c8c", "#b4b6b6", "#d4d5d5", "#eff0f0", "#fafafa"]
+      },
+      "ivory-dim": {
+        "role": "neutral",
+        "displayName": "Dim Ivory",
+        "canonical": "#c0c1c1",
+        "tonalRamp": ["#1a1b1b", "#3c3e3e", "#5e6060", "#828484", "#a0a2a2", "#c0c1c1", "#dcdddd", "#f4f5f5"]
+      },
+      "amber": {
+        "role": "primary",
+        "displayName": "Syntax Amber",
+        "canonical": "#e3b341",
+        "tonalRamp": ["#2a1f08", "#4a3610", "#6e5018", "#9a7020", "#c09028", "#e3b341", "#efd08a", "#f8ecd0"]
+      },
+      "live": {
+        "role": "secondary",
+        "displayName": "Signal Green",
+        "canonical": "#3ddc84",
+        "tonalRamp": ["#062814", "#0a4020", "#0e5c2e", "#14803e", "#22b05a", "#3ddc84", "#7eecb0", "#d4f8e4"]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Fault Red",
+        "canonical": "#d35a4a",
+        "tonalRamp": ["#2a100c", "#4a1c16", "#6e2a22", "#9a3c32", "#c04c40", "#d35a4a", "#e89890", "#f6d8d4"]
+      },
+      "row-hover": {
+        "role": "neutral",
+        "displayName": "Row Hover",
+        "canonical": "#141c1e",
+        "tonalRamp": ["#0a0e0f", "#141c1e", "#1e2a2c", "#2e3e42", "#4e6266", "#7e9094", "#b8c4c6", "#e8eeef"]
+      },
+      "row-active": {
+        "role": "neutral",
+        "displayName": "Row Active",
+        "canonical": "#161f22",
+        "tonalRamp": ["#0a0e10", "#161f22", "#223034", "#324448", "#526468", "#849498", "#c0c8ca", "#ecf0f1"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Ident wordmark only. Company name or LIVE BOARD, uppercase." },
+      "headline": { "displayName": "Headline", "purpose": "Ops and gate section titles." },
+      "title": { "displayName": "Title", "purpose": "Ident meta, panel titles, field labels, map footer. Uppercase, 0.22em tracking." },
+      "body": { "displayName": "Body", "purpose": "Page default and honest empty/error paragraphs." },
+      "label": { "displayName": "Label", "purpose": "Fact terms, shipment lane/status, compact meta." }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "select-fade",
+        "value": "opacity 220ms outQuad (0.35 → 1)",
+        "purpose": "Detail panel fade when a tracking number is selected. Skipped when prefers-reduced-motion is set."
+      },
+      {
+        "name": "reduce",
+        "value": "0.01ms",
+        "purpose": "prefers-reduced-motion collapses animation and transition durations."
+      }
+    ],
+    "breakpoints": [
+      { "name": "board-stack", "value": "980px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ivory filled ops/gate primary for sign-in, create board, and add numbers.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">SIGN IN</button>",
+      "css": ".ds-btn-primary { background: var(--ivory, #eff0f0); color: var(--ink, #10181a); border: 1px solid var(--ivory, #eff0f0); padding: 10px 16px; font-family: Iosevka, ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; border-radius: 0; cursor: pointer; } .ds-btn-primary:hover { filter: brightness(1.05); } .ds-btn-primary:focus-visible { outline: 1px solid var(--amber, #e3b341); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Ghost destructive control. Fault-red type; seam appears on hover.",
+      "html": "<button class=\"ds-btn-danger\" type=\"button\">Remove</button>",
+      "css": ".ds-btn-danger { background: transparent; color: var(--danger, #d35a4a); border: 1px solid transparent; padding: 8px 12px; margin-left: 24px; font-family: Iosevka, ui-monospace, monospace; font-size: 13px; letter-spacing: 0.02em; border-radius: 0; cursor: pointer; } .ds-btn-danger:hover, .ds-btn-danger:focus-visible { border-color: var(--danger, #d35a4a); } .ds-btn-danger:focus-visible { outline: 1px solid var(--amber, #e3b341); outline-offset: 2px; }"
+    },
+    {
+      "name": "Map Key",
+      "kind": "button",
+      "refersTo": "button-map-key",
+      "description": "Seamed map tool for zoom and reset. Seam turns ivory on hover.",
+      "html": "<div class=\"ds-map-tools\"><button class=\"ds-map-key\" type=\"button\" aria-label=\"Zoom out\">−</button><button class=\"ds-map-key\" type=\"button\" aria-label=\"Zoom in\">+</button><button class=\"ds-map-key\" type=\"button\">RESET</button></div>",
+      "css": ".ds-map-tools { display: inline-flex; align-items: center; gap: 12px; } .ds-map-key { min-width: 28px; height: 22px; padding: 0 8px; background: transparent; color: var(--ivory, #eff0f0); border: 1px solid var(--seam, #373e3d); font-family: Iosevka, ui-monospace, monospace; font-weight: 700; letter-spacing: 0.08em; border-radius: 0; cursor: pointer; } .ds-map-key:hover, .ds-map-key:focus-visible { border-color: var(--ivory, #eff0f0); } .ds-map-key:focus-visible { outline: 1px solid var(--amber, #e3b341); outline-offset: 2px; }"
+    },
+    {
+      "name": "Console Input",
+      "kind": "input",
+      "refersTo": "input-console",
+      "description": "Void-well field with amber caret. Used on login and ops forms.",
+      "html": "<label class=\"ds-field\">EMAIL<input class=\"ds-input\" type=\"email\" placeholder=\"ops@example.com\" /></label>",
+      "css": ".ds-field { display: grid; gap: 8px; font-family: Iosevka, ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.16em; color: var(--ivory-dim, #c0c1c1); } .ds-input { padding: 10px 12px; width: 100%; background: var(--ink-2, #0a0c0f); color: var(--ivory, #eff0f0); border: 1px solid var(--seam, #373e3d); border-radius: 0; caret-color: var(--amber, #e3b341); font-family: Iosevka, ui-monospace, monospace; font-size: 13px; letter-spacing: 0.02em; } .ds-input:focus-visible { outline: 1px solid var(--amber, #e3b341); outline-offset: 2px; }"
+    },
+    {
+      "name": "Gate Card",
+      "kind": "card",
+      "refersTo": "gate-card",
+      "description": "Centered seamed frame for login, board index, and not-found.",
+      "html": "<section class=\"ds-gate-card\"><h2 class=\"ds-gate-title\">Board not found</h2><p class=\"ds-gate-copy\">That company slug does not exist yet. An admin can create it.</p></section>",
+      "css": ".ds-gate-card { width: min(420px, 100%); border: 1px solid var(--seam, #373e3d); padding: 28px; background: var(--ink, #10181a); color: var(--ivory, #eff0f0); font-family: Iosevka, ui-monospace, monospace; } .ds-gate-title { margin: 0 0 16px; font-size: 16px; font-weight: 700; letter-spacing: 0.18em; } .ds-gate-copy { margin: 0; color: var(--ivory-dim, #c0c1c1); line-height: 1.5; letter-spacing: 0.02em; font-size: 13px; }"
+    },
+    {
+      "name": "Ops Frame",
+      "kind": "card",
+      "refersTo": "card-ops",
+      "description": "Seamed 18px ops form/list frame on Admin and Tracker.",
+      "html": "<form class=\"ds-ops-form\"><h2 class=\"ds-ops-title\">Create company</h2><label class=\"ds-field\">COMPANY NAME<input class=\"ds-input\" type=\"text\" placeholder=\"Ronin\" /></label><button class=\"ds-btn-primary\" type=\"button\">CREATE BOARD</button></form>",
+      "css": ".ds-ops-form { border: 1px solid var(--seam, #373e3d); padding: 18px; background: var(--ink, #10181a); color: var(--ivory, #eff0f0); font-family: Iosevka, ui-monospace, monospace; } .ds-ops-title { margin: 0 0 16px; font-size: 16px; font-weight: 700; letter-spacing: 0.18em; } .ds-ops-form .ds-field { display: grid; gap: 8px; margin-bottom: 14px; font-size: 11px; font-weight: 700; letter-spacing: 0.16em; color: var(--ivory-dim, #c0c1c1); } .ds-ops-form .ds-input { padding: 10px 12px; width: 100%; background: var(--ink-2, #0a0c0f); color: var(--ivory, #eff0f0); border: 1px solid var(--seam, #373e3d); border-radius: 0; caret-color: var(--amber, #e3b341); font-family: inherit; font-size: 13px; } .ds-ops-form .ds-input:focus-visible { outline: 1px solid var(--amber, #e3b341); outline-offset: 2px; } .ds-ops-form .ds-btn-primary { background: var(--ivory, #eff0f0); color: var(--ink, #10181a); border: 1px solid var(--ivory, #eff0f0); padding: 10px 16px; font-weight: 700; letter-spacing: 0.08em; border-radius: 0; cursor: pointer; } .ds-ops-form .ds-btn-primary:hover { filter: brightness(1.05); } .ds-ops-form .ds-btn-primary:focus-visible { outline: 1px solid var(--amber, #e3b341); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ident Bar",
+      "kind": "nav",
+      "refersTo": "ident-bar",
+      "description": "64px top chrome: wordmark, LIVE BOARD, last-fetch with signal-green pip.",
+      "html": "<header class=\"ds-ident\"><div class=\"ds-ident-left\"><h1 class=\"ds-wordmark\">RONIN</h1><span class=\"ds-pipe\" aria-hidden=\"true\">|</span><p class=\"ds-live-label\">LIVE BOARD</p></div><p class=\"ds-fetch\">LAST FETCH 13 SEP 09:40 UTC<span class=\"ds-pip\" aria-hidden=\"true\"></span></p></header>",
+      "css": ".ds-ident { display: flex; align-items: center; justify-content: space-between; height: 64px; padding: 0 18px; background: var(--ink, #10181a); border-bottom: 1px solid var(--seam, #373e3d); font-family: Iosevka, ui-monospace, monospace; color: var(--ivory, #eff0f0); } .ds-ident-left { display: flex; align-items: baseline; gap: 12px; } .ds-wordmark { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: 0.04em; line-height: 1; color: var(--ivory, #eff0f0); } .ds-pipe { color: var(--ivory-dim, #c0c1c1); font-weight: 700; } .ds-live-label { margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.22em; color: var(--ivory-dim, #c0c1c1); text-transform: uppercase; } .ds-fetch { margin: 0; display: flex; align-items: center; gap: 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ivory, #eff0f0); } .ds-pip { width: 7px; height: 7px; border-radius: 50%; background: var(--live, #3ddc84); }"
+    },
+    {
+      "name": "Shipment Row",
+      "kind": "custom",
+      "refersTo": "ship-row-active",
+      "description": "List button. Active row wells and carries a 6px amber pip; live status is amber.",
+      "html": "<button class=\"ds-ship-row is-active\" type=\"button\"><span class=\"ds-ship-num\">7849 3120 5581</span><span class=\"ds-ship-lane\">Awaiting FedEx scan data</span><span class=\"ds-ship-status\">QUEUED</span></button>",
+      "css": ".ds-ship-row { display: grid; position: relative; width: 100%; gap: 2px; padding: 10px 16px 10px 22px; background: transparent; color: var(--ivory, #eff0f0); border: 0; border-top: 1px solid var(--seam, #373e3d); text-align: left; font-family: Iosevka, ui-monospace, monospace; cursor: pointer; } .ds-ship-row:hover, .ds-ship-row:focus-visible { background: var(--row-hover, #141c1e); } .ds-ship-row:focus-visible { outline: 1px solid var(--amber, #e3b341); outline-offset: 2px; } .ds-ship-row.is-active { background: var(--row-active, #161f22); } .ds-ship-row.is-active::before { content: \"\"; position: absolute; left: 8px; top: 16px; width: 6px; height: 6px; border-radius: 50%; background: var(--amber, #e3b341); } .ds-ship-num { font-size: 14px; font-weight: 700; letter-spacing: 0.12em; color: var(--amber, #e3b341); } .ds-ship-lane, .ds-ship-status { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ivory-dim, #c0c1c1); } .ds-ship-status { justify-self: end; }"
+    },
+    {
+      "name": "History Node",
+      "kind": "custom",
+      "refersTo": "ship-row",
+      "description": "Travel-history event. Current node fills amber; past nodes stay hollow dim rings.",
+      "html": "<ol class=\"ds-history\"><li class=\"is-current\"><span class=\"ds-node\"></span><div><p>13 Sep 09:40 UTC Departure scan</p><p class=\"ds-place\">Location pending</p></div></li><li><span class=\"ds-node\"></span><div><p>13 Sep 08:12 UTC Picked up</p><p class=\"ds-place\">Location pending</p></div></li></ol>",
+      "css": ".ds-history { list-style: none; margin: 0; padding: 0; font-family: Iosevka, ui-monospace, monospace; color: var(--ivory, #eff0f0); } .ds-history li { display: grid; grid-template-columns: 12px 1fr; gap: 10px; position: relative; padding: 0 0 14px; } .ds-history li::before { content: \"\"; position: absolute; left: 5px; top: 8px; bottom: 0; width: 1px; background: var(--seam, #373e3d); } .ds-history li:last-child::before { display: none; } .ds-node { width: 11px; height: 11px; margin-top: 3px; border: 1px solid var(--ivory-dim, #c0c1c1); border-radius: 50%; background: var(--ink, #10181a); } .ds-history .is-current .ds-node { border-color: var(--amber, #e3b341); background: var(--amber, #e3b341); } .ds-history p { margin: 0; font-size: 11px; line-height: 1.45; } .ds-place { color: var(--ivory-dim, #c0c1c1); }"
+    },
+    {
+      "name": "Flash",
+      "kind": "chip",
+      "refersTo": "flash",
+      "description": "Seamed status strip. Fault red for errors, signal green for success.",
+      "html": "<p class=\"ds-flash ds-flash-bad\">Sign in failed.</p>",
+      "css": ".ds-flash { border: 1px solid var(--seam, #373e3d); padding: 10px 12px; margin-bottom: 16px; font-family: Iosevka, ui-monospace, monospace; font-size: 13px; letter-spacing: 0.02em; background: var(--ink, #10181a); } .ds-flash-bad { color: var(--danger, #d35a4a); } .ds-flash-ok { color: var(--live, #3ddc84); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Night Console",
+    "overview": "Live Board is a dark-first operator console for company-scoped FedEx tracking. The public page is a tiled night instrument: ident, shipment list, map, facts, and history occupy one viewport. Selecting a tracking number swaps panel contents in place. It does not restyle the grid, and it does not introduce a marketing hero.\n\nThe shipped ground is cooler and darker than the original challenger brief. Graphite night fills the frame; ivory type and 1px oxide seams do the structure; syntax amber is reserved for live state. One face, Iosevka, carries wordmark, data, and labels. Admin, Tracker, and login inherit the same night, with ivory filled primaries for irreversible ops.",
+    "keyCharacteristics": [
+      "Full-viewport tiled console (list / map / facts / history), not stacked cards",
+      "Graphite ground, ivory type, 1px seams, square corners",
+      "Amber only for live/in-transit/selected/focus",
+      "Iosevka throughout; uppercase tracking labels with wide letter-spacing",
+      "Honest empty and error copy — never a fabricated delivery"
+    ],
+    "rules": [
+      {
+        "name": "The Live Amber Rule",
+        "body": "Amber marks live state only: in-transit status, the selected pip, the current history node, the map course, caret, selection, and focus. It is not a brand fill, not a primary button, and not a decorative highlight.",
+        "section": "colors"
+      },
+      {
+        "name": "The Honest Empty Rule",
+        "body": "Missing credentials, queued numbers, and empty history say so in dim ivory. Never paint a delivered package, a fake route, or invented FedEx copy.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Face Rule",
+        "body": "Iosevka is the only type family. Do not pair it with a humanist sans, a serif display, or system UI for chrome.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tracking Label Rule",
+        "body": "Console chrome and field labels are uppercase with wide tracking (0.16em–0.22em). Sentence-case is for honest empty/error paragraphs only.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tile Persistence Rule",
+        "body": "List, map, facts, and history persist. Selection swaps contents in place; it never restacks the console into a hero, a single card, or a wizard.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Seam Rule",
+        "body": "Partition with 1px {colors.seam}. Do not lift panels with shadows, glass, or gradients.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep the four tiles (list, map, facts, history) on the public board and change contents on selection.",
+      "Do use syntax amber only for live/in-transit/selected/focus/caret/selection.",
+      "Do set ops and gate primaries in console ivory on graphite night.",
+      "Do partition with 1px seam oxide; keep corners at 0px.",
+      "Do write empty, queued, missing-key, and error states in dim ivory as facts (`AWAITING FEDEX`, `QUEUED`, `Board not found`).",
+      "Do set `:focus-visible` to a 1px amber outline with 2px offset."
+    ],
+    "donts": [
+      "Don't introduce a marketing hero, testimonial, or carrier-branded banner on any surface.",
+      "Don't invent FedEx statuses, ETAs, routes, or delivered packages when the API has not returned them.",
+      "Don't fill primary actions in amber or green — those colors are status, not buttons.",
+      "Don't add drop shadows, large radius, or a second type family.",
+      "Don't restyle Admin / Tracker / login into a light dashboard; they inherit the Night Console."
+    ]
+  }
+}

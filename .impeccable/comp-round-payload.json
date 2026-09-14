@@ -1,0 +1,40 @@
+{
+  "title": "Lock the board composition",
+  "question": "Night Console is locked. Which composition should the Ronin tracking page build to? The chosen image becomes the spatial contract.",
+  "options": [
+    {
+      "id": "comp-tiles",
+      "label": "Tiled console",
+      "kicker": "FROM THE ROLL",
+      "thesis": "Four persistent panels: list, map, facts, history. Selection changes contents, never layout.",
+      "palette": ["#1C1F24", "#2E333A", "#E8E6E1", "#E3B341"],
+      "materials": ["graphite ground", "1px seams", "syntax amber"],
+      "viewport": "Equal-presence tiles. Best when comparing several shipments while reading one.",
+      "risk": "The map can feel boxed-in if the list is long.",
+      "comp": ".impeccable/mocks/comp-1-tiles.png"
+    },
+    {
+      "id": "comp-map",
+      "label": "Map owns the night",
+      "thesis": "The map is the workspace. Facts float as a legend. History is a console footer.",
+      "palette": ["#1C1F24", "#2E333A", "#E8E6E1", "#E3B341"],
+      "materials": ["full-bleed dark map", "overlay legend", "footer strip"],
+      "viewport": "Slim left rail of numbers; geography is the product.",
+      "risk": "Facts are smaller; a data-heavy shipment may feel cramped in the overlay.",
+      "comp": ".impeccable/mocks/comp-2-map-dominant.png"
+    },
+    {
+      "id": "comp-theater",
+      "label": "Selected theater",
+      "thesis": "Tracking numbers are a buffer strip. The selected shipment owns map, facts, and history.",
+      "palette": ["#1C1F24", "#2E333A", "#E8E6E1", "#E3B341"],
+      "materials": ["tab strip", "two-pane workspace", "dense fact grid"],
+      "viewport": "One shipment at a time, deeply. Switching numbers is a buffer click.",
+      "risk": "Comparing two shipments side by side is harder.",
+      "comp": ".impeccable/mocks/comp-3-selected-theater.png"
+    }
+  ],
+  "buildPath": { "value": "comp", "toggle": false },
+  "steer": false,
+  "canon": false
+}

@@ -1,0 +1,672 @@
+{
+  "tool": "comp-diff",
+  "version": 1,
+  "createdAt": "2026-09-13T09:57:13.594Z",
+  "label": "hero",
+  "comp": ".impeccable/mocks/comp-1-tiles.png",
+  "build": ".impeccable/review/hero-repro.png",
+  "spec": ".impeccable/build/spec.json",
+  "compSize": "1280x720",
+  "buildSize": "1280x720",
+  "align": "top",
+  "overall": 0.4999,
+  "verdict": "drift",
+  "scores": {
+    "overall": 0.4999,
+    "structure": 0.5527,
+    "color": 0.6347,
+    "colorIntersection": 0.2723,
+    "paletteMatch": 0.8299,
+    "detail": 0.2712,
+    "detailRaw": 0.3077,
+    "detailAdded": 0.0729,
+    "bands": 0.5333
+  },
+  "palette": {
+    "comp": [
+      {
+        "hex": "#10181a",
+        "coverage": 0.8219
+      },
+      {
+        "hex": "#1f2535",
+        "coverage": 0.1123
+      },
+      {
+        "hex": "#373e3d",
+        "coverage": 0.0366
+      },
+      {
+        "hex": "#c0c1c1",
+        "coverage": 0.0137
+      },
+      {
+        "hex": "#eff0f0",
+        "coverage": 0.0086
+      },
+      {
+        "hex": "#6e7072",
+        "coverage": 0.0069
+      }
+    ],
+    "build": [
+      {
+        "hex": "#151818",
+        "coverage": 0.9236
+      },
+      {
+        "hex": "#f8f8f8",
+        "coverage": 0.0403
+      },
+      {
+        "hex": "#323535",
+        "coverage": 0.0201
+      },
+      {
+        "hex": "#7a7a89",
+        "coverage": 0.0064
+      },
+      {
+        "hex": "#9dabab",
+        "coverage": 0.0063
+      },
+      {
+        "hex": "#555555",
+        "coverage": 0.0032
+      }
+    ]
+  },
+  "regions": [
+    {
+      "id": "ident-bar",
+      "x": 0,
+      "y": 0,
+      "w": 1,
+      "h": 0.1,
+      "kind": "chrome",
+      "score": {
+        "overall": 0.4527,
+        "structure": 0.7946,
+        "color": 0.5195,
+        "colorIntersection": 0.0343,
+        "paletteMatch": 0.7808,
+        "detail": 0.1786,
+        "detailRaw": 0.2568,
+        "detailAdded": 0.1563,
+        "bands": 0
+      },
+      "verdict": "drift",
+      "inkBox": {
+        "comp": {
+          "x": 4,
+          "y": 4,
+          "w": 1271,
+          "h": 68
+        },
+        "build": {
+          "x": 0,
+          "y": 0,
+          "w": 1280,
+          "h": 72
+        }
+      }
+    },
+    {
+      "id": "wordmark",
+      "x": 0.0094,
+      "y": 0.0083,
+      "w": 0.1688,
+      "h": 0.05,
+      "kind": "text",
+      "score": {
+        "overall": 0.3896,
+        "structure": 0.4153,
+        "color": 0.4949,
+        "colorIntersection": 0.0459,
+        "paletteMatch": 0.7367,
+        "detail": 0.0768,
+        "detailRaw": 0.1757,
+        "detailAdded": 0.1979,
+        "bands": 0.4667
+      },
+      "verdict": "missing",
+      "inkBox": {
+        "comp": {
+          "x": 8,
+          "y": 14,
+          "w": 199,
+          "h": 20
+        },
+        "build": {
+          "x": 0,
+          "y": 0,
+          "w": 212,
+          "h": 48
+        }
+      }
+    },
+    {
+      "id": "live-board-label",
+      "x": 0.1,
+      "y": 0.0167,
+      "w": 0.0797,
+      "h": 0.0333,
+      "kind": "text",
+      "score": {
+        "overall": 0.3676,
+        "structure": 0.4746,
+        "color": 0.4844,
+        "colorIntersection": 0.0147,
+        "paletteMatch": 0.7372,
+        "detail": 0.0618,
+        "detailRaw": 0.1295,
+        "detailAdded": 0.1354,
+        "bands": 0
+      },
+      "verdict": "missing",
+      "inkBox": {
+        "comp": {
+          "x": 0,
+          "y": 19,
+          "w": 91,
+          "h": 12
+        },
+        "build": {
+          "x": 3,
+          "y": 25,
+          "w": 93,
+          "h": 13
+        }
+      }
+    },
+    {
+      "id": "last-fetch",
+      "x": 0.7562,
+      "y": 0.0167,
+      "w": 0.1734,
+      "h": 0.0333,
+      "kind": "text",
+      "score": {
+        "overall": 0.4386,
+        "structure": 0.5147,
+        "color": 0.4806,
+        "colorIntersection": 0.0098,
+        "paletteMatch": 0.7341,
+        "detail": 0.0697,
+        "detailRaw": 0.1114,
+        "detailAdded": 0.0833,
+        "bands": 0.5067
+      },
+      "verdict": "missing",
+      "inkBox": {
+        "comp": {
+          "x": 6,
+          "y": 19,
+          "w": 207,
+          "h": 11
+        },
+        "build": {
+          "x": 106,
+          "y": 27,
+          "w": 108,
+          "h": 8
+        }
+      }
+    },
+    {
+      "id": "shipments-head",
+      "x": 0,
+      "y": 0.1083,
+      "w": 0.1688,
+      "h": 0.0917,
+      "kind": "text",
+      "score": {
+        "overall": 0.3389,
+        "structure": 0.3105,
+        "color": 0.4709,
+        "colorIntersection": 0.0755,
+        "paletteMatch": 0.6838,
+        "detail": 0.0662,
+        "detailRaw": 0.2224,
+        "detailAdded": 0.3125,
+        "bands": 0.56
+      },
+      "verdict": "contradicted",
+      "inkBox": {
+        "comp": {
+          "x": 4,
+          "y": 9,
+          "w": 204,
+          "h": 53
+        },
+        "build": {
+          "x": 0,
+          "y": 0,
+          "w": 214,
+          "h": 66
+        }
+      }
+    },
+    {
+      "id": "shipments-list",
+      "x": 0,
+      "y": 0.1,
+      "w": 0.3,
+      "h": 0.8,
+      "kind": "control",
+      "score": {
+        "overall": 0.4409,
+        "structure": 0.4637,
+        "color": 0.5918,
+        "colorIntersection": 0.1997,
+        "paletteMatch": 0.8029,
+        "detail": 0.1257,
+        "detailRaw": 0.1309,
+        "detailAdded": 0.0104,
+        "bands": 0.5556
+      },
+      "verdict": "missing",
+      "inkBox": {
+        "comp": {
+          "x": 4,
+          "y": 0,
+          "w": 380,
+          "h": 568
+        },
+        "build": {
+          "x": 0,
+          "y": 0,
+          "w": 384,
+          "h": 576
+        }
+      }
+    },
+    {
+      "id": "shipments-tools",
+      "x": 0.1594,
+      "y": 0.925,
+      "w": 0.075,
+      "h": 0.0417,
+      "kind": "control",
+      "score": {
+        "overall": 0.5095,
+        "structure": 0.7313,
+        "color": 0.4878,
+        "colorIntersection": 0.02,
+        "paletteMatch": 0.7397,
+        "detail": 0.0484,
+        "detailRaw": 0.0588,
+        "detailAdded": 0.0208,
+        "bands": 0.64
+      },
+      "verdict": "missing",
+      "inkBox": {
+        "comp": {
+          "x": 6,
+          "y": 17,
+          "w": 81,
+          "h": 14
+        },
+        "build": null
+      }
+    },
+    {
+      "id": "map-title",
+      "x": 0.5156,
+      "y": 0.15,
+      "w": 0.0422,
+      "h": 0.05,
+      "kind": "text",
+      "score": {
+        "overall": 0.6265,
+        "structure": 0.8292,
+        "color": 0.666,
+        "colorIntersection": 0.3781,
+        "paletteMatch": 0.8211,
+        "detail": 0.0356,
+        "detailRaw": 0.0356,
+        "detailAdded": 0,
+        "bands": 0.4
+      },
+      "verdict": "missing",
+      "inkBox": {
+        "comp": {
+          "x": 8,
+          "y": 13,
+          "w": 46,
+          "h": 30
+        },
+        "build": null
+      }
+    },
+    {
+      "id": "map-west",
+      "x": 0.3,
+      "y": 0.525,
+      "w": 0.2,
+      "h": 0.2167,
+      "kind": "control",
+      "score": {
+        "overall": 0.4574,
+        "structure": 0.5878,
+        "color": 0.4644,
+        "colorIntersection": 0.0777,
+        "paletteMatch": 0.6727,
+        "detail": 0.1516,
+        "detailRaw": 0.261,
+        "detailAdded": 0.2188,
+        "bands": 0.39
+      },
+      "verdict": "contradicted",
+      "inkBox": {
+        "comp": {
+          "x": 0,
+          "y": 6,
+          "w": 256,
+          "h": 117
+        },
+        "build": {
+          "x": 0,
+          "y": 0,
+          "w": 240,
+          "h": 100
+        }
+      }
+    },
+    {
+      "id": "map-east",
+      "x": 0.5,
+      "y": 0.2,
+      "w": 0.3,
+      "h": 0.6,
+      "kind": "control",
+      "score": {
+        "overall": 0.4911,
+        "structure": 0.4936,
+        "color": 0.6218,
+        "colorIntersection": 0.3111,
+        "paletteMatch": 0.7891,
+        "detail": 0.2565,
+        "detailRaw": 0.3346,
+        "detailAdded": 0.1563,
+        "bands": 0.4078
+      },
+      "verdict": "contradicted",
+      "inkBox": {
+        "comp": {
+          "x": 0,
+          "y": 0,
+          "w": 384,
+          "h": 432
+        },
+        "build": {
+          "x": 0,
+          "y": 32,
+          "w": 383,
+          "h": 393
+        }
+      }
+    },
+    {
+      "id": "map-credit",
+      "x": 0.3,
+      "y": 0.8583,
+      "w": 0.0234,
+      "h": 0.0417,
+      "kind": "text",
+      "score": {
+        "overall": 0.4489,
+        "structure": 0.6322,
+        "color": 0.3713,
+        "colorIntersection": 0.0903,
+        "paletteMatch": 0.5227,
+        "detail": 0,
+        "detailRaw": 0,
+        "detailAdded": 0.0208,
+        "bands": 0.4
+      },
+      "verdict": "missing",
+      "inkBox": {
+        "comp": {
+          "x": 0,
+          "y": 17,
+          "w": 30,
+          "h": 14
+        },
+        "build": {
+          "x": 10,
+          "y": 45,
+          "w": 5,
+          "h": 3
+        }
+      }
+    },
+    {
+      "id": "map-legend",
+      "x": 0.3,
+      "y": 0.9,
+      "w": 0.3,
+      "h": 0.1,
+      "kind": "chrome",
+      "score": {
+        "overall": 0.4552,
+        "structure": 0.7708,
+        "color": 0.6918,
+        "colorIntersection": 0.3597,
+        "paletteMatch": 0.8706,
+        "detail": 0.05,
+        "detailRaw": 0.1438,
+        "detailAdded": 0.1875,
+        "bands": 0
+      },
+      "verdict": "missing",
+      "inkBox": {
+        "comp": {
+          "x": 0,
+          "y": 13,
+          "w": 375,
+          "h": 34
+        },
+        "build": {
+          "x": 0,
+          "y": 6,
+          "w": 156,
+          "h": 49
+        }
+      }
+    },
+    {
+      "id": "map-tools",
+      "x": 0.6234,
+      "y": 0.9167,
+      "w": 0.0609,
+      "h": 0.05,
+      "kind": "control",
+      "score": {
+        "overall": 0.533,
+        "structure": 0.6149,
+        "color": 0.6855,
+        "colorIntersection": 0.3707,
+        "paletteMatch": 0.8551,
+        "detail": 0.0819,
+        "detailRaw": 0.1808,
+        "detailAdded": 0.1979,
+        "bands": 0.6
+      },
+      "verdict": "drift",
+      "inkBox": {
+        "comp": {
+          "x": 8,
+          "y": 16,
+          "w": 64,
+          "h": 16
+        },
+        "build": {
+          "x": 27,
+          "y": 9,
+          "w": 51,
+          "h": 14
+        }
+      }
+    },
+    {
+      "id": "facts-title",
+      "x": 0.8656,
+      "y": 0.125,
+      "w": 0.1172,
+      "h": 0.075,
+      "kind": "text",
+      "score": {
+        "overall": 0.4269,
+        "structure": 0.542,
+        "color": 0.4829,
+        "colorIntersection": 0.0602,
+        "paletteMatch": 0.7105,
+        "detail": 0,
+        "detailRaw": 0.0253,
+        "detailAdded": 0.0833,
+        "bands": 0.3524
+      },
+      "verdict": "missing",
+      "inkBox": {
+        "comp": {
+          "x": 9,
+          "y": 6,
+          "w": 133,
+          "h": 48
+        },
+        "build": {
+          "x": 0,
+          "y": 25,
+          "w": 150,
+          "h": 29
+        }
+      }
+    },
+    {
+      "id": "facts-grid",
+      "x": 0.8422,
+      "y": 0.125,
+      "w": 0.1406,
+      "h": 0.3667,
+      "kind": "text",
+      "score": {
+        "overall": 0.4708,
+        "structure": 0.5547,
+        "color": 0.4858,
+        "colorIntersection": 0.0554,
+        "paletteMatch": 0.7176,
+        "detail": 0.0133,
+        "detailRaw": 0.0758,
+        "detailAdded": 0.125,
+        "bands": 0.7
+      },
+      "verdict": "missing",
+      "inkBox": {
+        "comp": {
+          "x": 10,
+          "y": 6,
+          "w": 163,
+          "h": 249
+        },
+        "build": {
+          "x": 2,
+          "y": 25,
+          "w": 178,
+          "h": 236
+        }
+      }
+    },
+    {
+      "id": "history-title",
+      "x": 0.8,
+      "y": 0.5083,
+      "w": 0.15,
+      "h": 0.0917,
+      "kind": "text",
+      "score": {
+        "overall": 0.5078,
+        "structure": 0.6282,
+        "color": 0.5137,
+        "colorIntersection": 0.072,
+        "paletteMatch": 0.7515,
+        "detail": 0.0619,
+        "detailRaw": 0.1661,
+        "detailAdded": 0.2083,
+        "bands": 0.56
+      },
+      "verdict": "drift",
+      "inkBox": {
+        "comp": {
+          "x": 0,
+          "y": 6,
+          "w": 186,
+          "h": 60
+        },
+        "build": {
+          "x": 16,
+          "y": 5,
+          "w": 108,
+          "h": 48
+        }
+      }
+    },
+    {
+      "id": "history-list",
+      "x": 0.8,
+      "y": 0.5083,
+      "w": 0.1594,
+      "h": 0.4583,
+      "kind": "text",
+      "score": {
+        "overall": 0.4466,
+        "structure": 0.4996,
+        "color": 0.5155,
+        "colorIntersection": 0.0807,
+        "paletteMatch": 0.7495,
+        "detail": 0.0902,
+        "detailRaw": 0.1006,
+        "detailAdded": 0.0208,
+        "bands": 0.544
+      },
+      "verdict": "missing",
+      "inkBox": {
+        "comp": {
+          "x": 0,
+          "y": 6,
+          "w": 196,
+          "h": 317
+        },
+        "build": {
+          "x": 16,
+          "y": 5,
+          "w": 188,
+          "h": 85
+        }
+      }
+    }
+  ],
+  "files": {
+    "sideBySide": "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/side-by-side.png",
+    "heatmap": "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/heatmap.png",
+    "regionFiles": [
+      "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/regions/ident-bar.png",
+      "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/regions/wordmark.png",
+      "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/regions/live-board-label.png",
+      "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/regions/last-fetch.png",
+      "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/regions/shipments-head.png",
+      "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/regions/shipments-list.png",
+      "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/regions/shipments-tools.png",
+      "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/regions/map-title.png",
+      "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/regions/map-west.png",
+      "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/regions/map-east.png",
+      "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/regions/map-credit.png",
+      "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/regions/map-legend.png",
+      "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/regions/map-tools.png",
+      "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/regions/facts-title.png",
+      "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/regions/facts-grid.png",
+      "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/regions/history-title.png",
+      "E:/Projects/Shipment-Tracker/.impeccable/review/diff/hero/regions/history-list.png"
+    ]
+  }
+}

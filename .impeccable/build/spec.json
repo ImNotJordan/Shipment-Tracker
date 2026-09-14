@@ -1,0 +1,1131 @@
+{
+  "tool": "comp-spec",
+  "version": 1,
+  "createdAt": "2026-09-13T09:28:00.976Z",
+  "comp": ".impeccable/mocks/comp-1-tiles.png",
+  "warnings": [],
+  "uncoveredInkCells": [
+    "H1",
+    "H8"
+  ],
+  "compSize": {
+    "width": 1280,
+    "height": 720
+  },
+  "aspect": 1.7778,
+  "orientation": "landscape",
+  "palette": [
+    {
+      "hex": "#10181a",
+      "coverage": 0.8276
+    },
+    {
+      "hex": "#1f2535",
+      "coverage": 0.1131
+    },
+    {
+      "hex": "#373e3d",
+      "coverage": 0.0369
+    },
+    {
+      "hex": "#c0c1c1",
+      "coverage": 0.0138
+    },
+    {
+      "hex": "#eff0f0",
+      "coverage": 0.0086
+    }
+  ],
+  "bands": [
+    {
+      "y": 0.0417,
+      "strength": 0.2861
+    },
+    {
+      "y": 0.0833,
+      "strength": 0.2662
+    }
+  ],
+  "regions": [
+    {
+      "id": "ident-bar",
+      "kind": "chrome",
+      "note": "Full-width graphite top bar with 1px bottom seam holding the wordmark, live-board label, and last-fetch clock.",
+      "grid": "A0:J0",
+      "box": {
+        "x": 0,
+        "y": 0,
+        "w": 1,
+        "h": 0.1
+      },
+      "px": {
+        "x": 0,
+        "y": 0,
+        "w": 1280,
+        "h": 72
+      },
+      "aspect": 17.7778,
+      "palette": [
+        {
+          "hex": "#0a0c0f",
+          "coverage": 0.971
+        },
+        {
+          "hex": "#e6e6e6",
+          "coverage": 0.0112
+        },
+        {
+          "hex": "#3b3e3f",
+          "coverage": 0.0072
+        },
+        {
+          "hex": "#a0a0a0",
+          "coverage": 0.0061
+        },
+        {
+          "hex": "#696969",
+          "coverage": 0.0045
+        }
+      ],
+      "detail": {
+        "energy": 19.9058
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null
+    },
+    {
+      "id": "wordmark",
+      "kind": "text",
+      "note": "RONIN in compact ivory caps.",
+      "grid": "A0:B0",
+      "coverBox": {
+        "x": 0,
+        "y": 0,
+        "w": 0.2,
+        "h": 0.1
+      },
+      "box": {
+        "x": 0.0094,
+        "y": 0.0083,
+        "w": 0.1688,
+        "h": 0.05
+      },
+      "px": {
+        "x": 12,
+        "y": 6,
+        "w": 216,
+        "h": 36
+      },
+      "aspect": 6,
+      "palette": [
+        {
+          "hex": "#09090d",
+          "coverage": 0.8741
+        },
+        {
+          "hex": "#f1f1f2",
+          "coverage": 0.0455
+        },
+        {
+          "hex": "#444648",
+          "coverage": 0.0315
+        },
+        {
+          "hex": "#c6c6c7",
+          "coverage": 0.0268
+        },
+        {
+          "hex": "#919394",
+          "coverage": 0.0221
+        }
+      ],
+      "detail": {
+        "energy": 36.6645
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null,
+      "type": {
+        "comp": {
+          "lines": 1,
+          "glyphs": 14,
+          "capHeightPx": 12.6,
+          "inkIsDark": false,
+          "allCaps": false,
+          "advance": 0.5938,
+          "advTall": 0.5938,
+          "advX": null,
+          "gap": 0.2375,
+          "xRatio": 0.8181,
+          "stemW": 0.1912,
+          "contrast": 1.0835,
+          "serif": 0.9514,
+          "densTall": 0.6249,
+          "densX": null,
+          "weight": 0.6249
+        },
+        "widthClass": "condensed",
+        "weightClass": "bold",
+        "chosen": {
+          "family": "Iosevka Charon Mono",
+          "weight": 700,
+          "fontSizePx": 18,
+          "source": "catalog",
+          "estimatedSize": true,
+          "stamp": "5ff8b01865d9"
+        }
+      }
+    },
+    {
+      "id": "live-board-label",
+      "kind": "text",
+      "note": "LIVE BOARD label to the right of the wordmark.",
+      "grid": "B0:C0",
+      "coverBox": {
+        "x": 0.1,
+        "y": 0,
+        "w": 0.2,
+        "h": 0.1
+      },
+      "box": {
+        "x": 0.1,
+        "y": 0.0167,
+        "w": 0.0797,
+        "h": 0.0333
+      },
+      "px": {
+        "x": 128,
+        "y": 12,
+        "w": 102,
+        "h": 24
+      },
+      "aspect": 4.25,
+      "palette": [
+        {
+          "hex": "#0a0b10",
+          "coverage": 0.8456
+        },
+        {
+          "hex": "#404646",
+          "coverage": 0.0588
+        },
+        {
+          "hex": "#e8e8e8",
+          "coverage": 0.0515
+        },
+        {
+          "hex": "#9c9c9c",
+          "coverage": 0.0404
+        },
+        {
+          "hex": "#787878",
+          "coverage": 0.0037
+        }
+      ],
+      "detail": {
+        "energy": 32.8245
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null,
+      "type": {
+        "comp": {
+          "lines": 1,
+          "glyphs": 8,
+          "capHeightPx": 11.4,
+          "inkIsDark": false,
+          "allCaps": true,
+          "advance": 0.6427,
+          "advTall": 0.6427,
+          "advX": null,
+          "gap": 0.2191,
+          "xRatio": null,
+          "stemW": 0.1874,
+          "contrast": 1.0692,
+          "serif": null,
+          "densTall": 0.5818,
+          "densX": null,
+          "weight": 0.5818
+        },
+        "widthClass": "normal",
+        "weightClass": "bold"
+      }
+    },
+    {
+      "id": "last-fetch",
+      "kind": "text",
+      "note": "LAST FETCH 10:24:37 UTC with a green live pip.",
+      "grid": "H0:J0",
+      "coverBox": {
+        "x": 0.7,
+        "y": 0,
+        "w": 0.3,
+        "h": 0.1
+      },
+      "box": {
+        "x": 0.7562,
+        "y": 0.0167,
+        "w": 0.1734,
+        "h": 0.0333
+      },
+      "px": {
+        "x": 968,
+        "y": 12,
+        "w": 222,
+        "h": 24
+      },
+      "aspect": 9.25,
+      "palette": [
+        {
+          "hex": "#08090e",
+          "coverage": 0.8891
+        },
+        {
+          "hex": "#efeff0",
+          "coverage": 0.0503
+        },
+        {
+          "hex": "#8d908f",
+          "coverage": 0.0277
+        },
+        {
+          "hex": "#2d3031",
+          "coverage": 0.0208
+        },
+        {
+          "hex": "#bac3c3",
+          "coverage": 0.0121
+        }
+      ],
+      "detail": {
+        "energy": 48.3114
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null,
+      "type": {
+        "comp": {
+          "lines": 1,
+          "glyphs": 21,
+          "capHeightPx": 10.7,
+          "inkIsDark": false,
+          "allCaps": true,
+          "advance": 0.5592,
+          "advTall": 0.5748,
+          "advX": null,
+          "gap": 0.2796,
+          "xRatio": null,
+          "stemW": 0.1908,
+          "contrast": 1.0337,
+          "serif": 0.2964,
+          "densTall": 0.5638,
+          "densX": null,
+          "weight": 0.5638
+        },
+        "widthClass": "condensed",
+        "weightClass": "bold"
+      }
+    },
+    {
+      "id": "shipments-head",
+      "kind": "text",
+      "note": "SHIPMENTS header with count 24 and a filter glyph.",
+      "grid": "A1:C1",
+      "coverBox": {
+        "x": 0,
+        "y": 0.1,
+        "w": 0.3,
+        "h": 0.1
+      },
+      "box": {
+        "x": 0,
+        "y": 0.1083,
+        "w": 0.1688,
+        "h": 0.0917
+      },
+      "px": {
+        "x": 0,
+        "y": 78,
+        "w": 216,
+        "h": 66
+      },
+      "aspect": 3.2727,
+      "palette": [
+        {
+          "hex": "#091516",
+          "coverage": 0.8642
+        },
+        {
+          "hex": "#2b3636",
+          "coverage": 0.0571
+        },
+        {
+          "hex": "#bebfc0",
+          "coverage": 0.0341
+        },
+        {
+          "hex": "#57595c",
+          "coverage": 0.023
+        },
+        {
+          "hex": "#848788",
+          "coverage": 0.0217
+        }
+      ],
+      "detail": {
+        "energy": 32.1567
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null,
+      "type": {
+        "comp": {
+          "lines": 1,
+          "glyphs": 23,
+          "capHeightPx": 8.7,
+          "inkIsDark": false,
+          "allCaps": false,
+          "advance": 0.6098,
+          "advTall": 0.6098,
+          "advX": null,
+          "gap": 0.1524,
+          "xRatio": 0.5977,
+          "stemW": 0.1827,
+          "contrast": 1.0378,
+          "serif": 0.6212,
+          "densTall": 0.5629,
+          "densX": null,
+          "weight": 0.5629
+        },
+        "widthClass": "condensed",
+        "weightClass": "bold"
+      }
+    },
+    {
+      "id": "shipments-list",
+      "kind": "control",
+      "note": "Selectable tracking-number rows; selected row uses amber pip and amber figures; status words IN TRANSIT / DELIVERED / EXCEPTION at the right of each row.",
+      "grid": "A1:C8",
+      "box": {
+        "x": 0,
+        "y": 0.1,
+        "w": 0.3,
+        "h": 0.8
+      },
+      "px": {
+        "x": 0,
+        "y": 72,
+        "w": 384,
+        "h": 576
+      },
+      "aspect": 0.6667,
+      "palette": [
+        {
+          "hex": "#0d181a",
+          "coverage": 0.9002
+        },
+        {
+          "hex": "#3a4141",
+          "coverage": 0.0311
+        },
+        {
+          "hex": "#212131",
+          "coverage": 0.0267
+        },
+        {
+          "hex": "#b1b3b4",
+          "coverage": 0.0244
+        },
+        {
+          "hex": "#777a7c",
+          "coverage": 0.0175
+        }
+      ],
+      "detail": {
+        "energy": 31.2591
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null
+    },
+    {
+      "id": "shipments-tools",
+      "kind": "control",
+      "note": "SORT and FILTER text buttons on a 1px top seam.",
+      "grid": "A9:C9",
+      "coverBox": {
+        "x": 0,
+        "y": 0.9,
+        "w": 0.3,
+        "h": 0.1
+      },
+      "box": {
+        "x": 0.1594,
+        "y": 0.925,
+        "w": 0.075,
+        "h": 0.0417
+      },
+      "px": {
+        "x": 204,
+        "y": 666,
+        "w": 96,
+        "h": 30
+      },
+      "aspect": 3.2,
+      "palette": [
+        {
+          "hex": "#091517",
+          "coverage": 0.8875
+        },
+        {
+          "hex": "#d2d4d8",
+          "coverage": 0.0563
+        },
+        {
+          "hex": "#5e6064",
+          "coverage": 0.025
+        },
+        {
+          "hex": "#a6aaae",
+          "coverage": 0.025
+        },
+        {
+          "hex": "#304040",
+          "coverage": 0.0063
+        }
+      ],
+      "detail": {
+        "energy": 15.8269
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null
+    },
+    {
+      "id": "map-title",
+      "kind": "text",
+      "note": "LIVE ROUTE TRACKING heading over the map.",
+      "grid": "D1:F1",
+      "coverBox": {
+        "x": 0.3,
+        "y": 0.1,
+        "w": 0.3,
+        "h": 0.1
+      },
+      "box": {
+        "x": 0.5156,
+        "y": 0.15,
+        "w": 0.0422,
+        "h": 0.05
+      },
+      "px": {
+        "x": 660,
+        "y": 108,
+        "w": 54,
+        "h": 36
+      },
+      "aspect": 1.5,
+      "palette": [
+        {
+          "hex": "#181d1f",
+          "coverage": 0.9398
+        },
+        {
+          "hex": "#383f43",
+          "coverage": 0.0324
+        },
+        {
+          "hex": "#a8abab",
+          "coverage": 0.0278
+        }
+      ],
+      "detail": {
+        "energy": 5.2271
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null,
+      "type": {
+        "comp": null,
+        "measuredAt": "2026-09-13T09:28:43.228Z",
+        "note": "no separable lettering in the crop; size by the region box"
+      }
+    },
+    {
+      "id": "map-west",
+      "kind": "control",
+      "note": "Google Map west extent: Pacific to Rockies, dark basemap, city labels; runtime Google Maps, not a shipped raster.",
+      "grid": "D2:E7",
+      "coverBox": {
+        "x": 0.3,
+        "y": 0.2,
+        "w": 0.2,
+        "h": 0.6
+      },
+      "box": {
+        "x": 0.3,
+        "y": 0.525,
+        "w": 0.2,
+        "h": 0.2167
+      },
+      "px": {
+        "x": 384,
+        "y": 378,
+        "w": 256,
+        "h": 156
+      },
+      "aspect": 1.641,
+      "palette": [
+        {
+          "hex": "#24282b",
+          "coverage": 0.944
+        },
+        {
+          "hex": "#2a3322",
+          "coverage": 0.0278
+        },
+        {
+          "hex": "#4b4d4e",
+          "coverage": 0.0125
+        },
+        {
+          "hex": "#211609",
+          "coverage": 0.008
+        },
+        {
+          "hex": "#3d280e",
+          "coverage": 0.0078
+        }
+      ],
+      "detail": {
+        "energy": 21.3639
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null
+    },
+    {
+      "id": "map-east",
+      "kind": "control",
+      "note": "Google Map east extent with the amber plotted course LA–Phoenix–Dallas–Memphis and IN TRANSIT current-position mark; runtime Google Maps.",
+      "grid": "F2:H7",
+      "box": {
+        "x": 0.5,
+        "y": 0.2,
+        "w": 0.3,
+        "h": 0.6
+      },
+      "px": {
+        "x": 640,
+        "y": 144,
+        "w": 384,
+        "h": 432
+      },
+      "aspect": 0.8889,
+      "palette": [
+        {
+          "hex": "#192125",
+          "coverage": 0.9414
+        },
+        {
+          "hex": "#a0a1a2",
+          "coverage": 0.019
+        },
+        {
+          "hex": "#4f5252",
+          "coverage": 0.0177
+        },
+        {
+          "hex": "#dee1e1",
+          "coverage": 0.0157
+        },
+        {
+          "hex": "#73797b",
+          "coverage": 0.0061
+        }
+      ],
+      "detail": {
+        "energy": 24.8538
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null
+    },
+    {
+      "id": "map-credit",
+      "kind": "text",
+      "note": "Google Maps attribution.",
+      "grid": "D8:E8",
+      "coverBox": {
+        "x": 0.3,
+        "y": 0.8,
+        "w": 0.2,
+        "h": 0.1
+      },
+      "box": {
+        "x": 0.3,
+        "y": 0.8583,
+        "w": 0.0234,
+        "h": 0.0417
+      },
+      "px": {
+        "x": 384,
+        "y": 618,
+        "w": 30,
+        "h": 30
+      },
+      "aspect": 1,
+      "palette": [
+        {
+          "hex": "#1d2835",
+          "coverage": 0.86
+        },
+        {
+          "hex": "#5a5e5e",
+          "coverage": 0.08
+        },
+        {
+          "hex": "#d0d0d8",
+          "coverage": 0.04
+        },
+        {
+          "hex": "#788888",
+          "coverage": 0.01
+        },
+        {
+          "hex": "#f8f8f8",
+          "coverage": 0.01
+        }
+      ],
+      "detail": {
+        "energy": 6.7497
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null,
+      "type": {
+        "comp": {
+          "lines": 1,
+          "glyphs": 3,
+          "capHeightPx": 7.4,
+          "inkIsDark": false,
+          "allCaps": true,
+          "advance": 0.7726,
+          "advTall": 0.7726,
+          "advX": null,
+          "gap": 0.1344,
+          "xRatio": null,
+          "stemW": 0.2366,
+          "contrast": 1.0954,
+          "serif": null,
+          "densTall": 0.638,
+          "densX": null,
+          "weight": 0.638
+        },
+        "widthClass": "normal",
+        "weightClass": "bold"
+      }
+    },
+    {
+      "id": "map-legend",
+      "kind": "chrome",
+      "note": "Amber polyline swatch and IN TRANSIT legend.",
+      "grid": "D9:F9",
+      "box": {
+        "x": 0.3,
+        "y": 0.9,
+        "w": 0.3,
+        "h": 0.1
+      },
+      "px": {
+        "x": 384,
+        "y": 648,
+        "w": 384,
+        "h": 72
+      },
+      "aspect": 5.3333,
+      "palette": [
+        {
+          "hex": "#091517",
+          "coverage": 0.9742
+        },
+        {
+          "hex": "#232131",
+          "coverage": 0.0119
+        },
+        {
+          "hex": "#354141",
+          "coverage": 0.0092
+        },
+        {
+          "hex": "#2d1108",
+          "coverage": 0.0023
+        },
+        {
+          "hex": "#e8e8e8",
+          "coverage": 0.0023
+        }
+      ],
+      "detail": {
+        "energy": 8.8774
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null
+    },
+    {
+      "id": "map-tools",
+      "kind": "control",
+      "note": "Minus, plus, and RESET map controls.",
+      "grid": "G9:H9",
+      "coverBox": {
+        "x": 0.6,
+        "y": 0.9,
+        "w": 0.2,
+        "h": 0.1
+      },
+      "box": {
+        "x": 0.6234,
+        "y": 0.9167,
+        "w": 0.0609,
+        "h": 0.05
+      },
+      "px": {
+        "x": 798,
+        "y": 660,
+        "w": 78,
+        "h": 36
+      },
+      "aspect": 2.1667,
+      "palette": [
+        {
+          "hex": "#091417",
+          "coverage": 0.9006
+        },
+        {
+          "hex": "#e4e9e8",
+          "coverage": 0.0417
+        },
+        {
+          "hex": "#6f7173",
+          "coverage": 0.0288
+        },
+        {
+          "hex": "#b0b3b3",
+          "coverage": 0.0192
+        },
+        {
+          "hex": "#535358",
+          "coverage": 0.0096
+        }
+      ],
+      "detail": {
+        "energy": 15.8872
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null
+    },
+    {
+      "id": "facts-title",
+      "kind": "text",
+      "note": "SHIPMENT FACTS heading.",
+      "grid": "I1:J1",
+      "coverBox": {
+        "x": 0.8,
+        "y": 0.1,
+        "w": 0.2,
+        "h": 0.1
+      },
+      "box": {
+        "x": 0.8656,
+        "y": 0.125,
+        "w": 0.1172,
+        "h": 0.075
+      },
+      "px": {
+        "x": 1108,
+        "y": 90,
+        "w": 150,
+        "h": 54
+      },
+      "aspect": 2.7778,
+      "palette": [
+        {
+          "hex": "#0a1516",
+          "coverage": 0.8826
+        },
+        {
+          "hex": "#505354",
+          "coverage": 0.0399
+        },
+        {
+          "hex": "#edeef0",
+          "coverage": 0.0399
+        },
+        {
+          "hex": "#8c8e8f",
+          "coverage": 0.0211
+        },
+        {
+          "hex": "#85724d",
+          "coverage": 0.0164
+        }
+      ],
+      "detail": {
+        "energy": 35.7119
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null,
+      "type": {
+        "comp": {
+          "lines": 2,
+          "glyphs": 25,
+          "capHeightPx": 9.4,
+          "inkIsDark": false,
+          "allCaps": true,
+          "advance": 0.5592,
+          "advTall": 0.5592,
+          "advX": null,
+          "gap": 0.1783,
+          "xRatio": null,
+          "stemW": 0.2055,
+          "contrast": 1.149,
+          "serif": null,
+          "densTall": 0.6043,
+          "densX": null,
+          "weight": 0.6043
+        },
+        "widthClass": "condensed",
+        "weightClass": "bold"
+      }
+    },
+    {
+      "id": "facts-grid",
+      "kind": "text",
+      "note": "Key-value shipment facts: tracking number, status, service, weight, dimensions, dates, origin, dest, consignee, pieces, special instructions.",
+      "grid": "I1:J4",
+      "coverBox": {
+        "x": 0.8,
+        "y": 0.1,
+        "w": 0.2,
+        "h": 0.4
+      },
+      "box": {
+        "x": 0.8422,
+        "y": 0.125,
+        "w": 0.1406,
+        "h": 0.3667
+      },
+      "px": {
+        "x": 1078,
+        "y": 90,
+        "w": 180,
+        "h": 264
+      },
+      "aspect": 0.6818,
+      "palette": [
+        {
+          "hex": "#0a1617",
+          "coverage": 0.8949
+        },
+        {
+          "hex": "#e2e3e4",
+          "coverage": 0.0392
+        },
+        {
+          "hex": "#404344",
+          "coverage": 0.0261
+        },
+        {
+          "hex": "#747677",
+          "coverage": 0.0217
+        },
+        {
+          "hex": "#aaadad",
+          "coverage": 0.0181
+        }
+      ],
+      "detail": {
+        "energy": 30.3685
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null,
+      "type": {
+        "comp": {
+          "lines": 10,
+          "glyphs": 136,
+          "capHeightPx": 9.6,
+          "inkIsDark": false,
+          "allCaps": true,
+          "advance": 0.5994,
+          "advTall": 0.5994,
+          "advX": null,
+          "gap": 0.1708,
+          "xRatio": null,
+          "stemW": 0.2045,
+          "contrast": 1.0482,
+          "serif": 0.3193,
+          "densTall": 0.6025,
+          "densX": null,
+          "weight": 0.6025
+        },
+        "widthClass": "condensed",
+        "weightClass": "bold"
+      }
+    },
+    {
+      "id": "history-title",
+      "kind": "text",
+      "note": "TRAVEL HISTORY heading.",
+      "grid": "I5:J5",
+      "coverBox": {
+        "x": 0.8,
+        "y": 0.5,
+        "w": 0.2,
+        "h": 0.1
+      },
+      "box": {
+        "x": 0.8,
+        "y": 0.5083,
+        "w": 0.15,
+        "h": 0.0917
+      },
+      "px": {
+        "x": 1024,
+        "y": 366,
+        "w": 192,
+        "h": 66
+      },
+      "aspect": 2.9091,
+      "palette": [
+        {
+          "hex": "#091617",
+          "coverage": 0.8875
+        },
+        {
+          "hex": "#e0e1e2",
+          "coverage": 0.0498
+        },
+        {
+          "hex": "#86898a",
+          "coverage": 0.0285
+        },
+        {
+          "hex": "#545456",
+          "coverage": 0.0206
+        },
+        {
+          "hex": "#b2b3b5",
+          "coverage": 0.0135
+        }
+      ],
+      "detail": {
+        "energy": 30.9301
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null,
+      "type": {
+        "comp": {
+          "lines": 3,
+          "glyphs": 40,
+          "capHeightPx": 10,
+          "inkIsDark": false,
+          "allCaps": false,
+          "advance": 0.5493,
+          "advTall": 0.5836,
+          "advX": 0.5483,
+          "gap": 0.1373,
+          "xRatio": 0.7344,
+          "stemW": 0.1896,
+          "contrast": 0.9995,
+          "serif": 1.1325,
+          "densTall": 0.5958,
+          "densX": 0.6341,
+          "weight": 0.5958
+        },
+        "widthClass": "condensed",
+        "weightClass": "bold"
+      }
+    },
+    {
+      "id": "history-list",
+      "kind": "text",
+      "note": "Vertical timed scan log with a 1px spine, hollow nodes, and an amber current IN TRANSIT node.",
+      "grid": "I5:J9",
+      "coverBox": {
+        "x": 0.8,
+        "y": 0.5,
+        "w": 0.2,
+        "h": 0.5
+      },
+      "box": {
+        "x": 0.8,
+        "y": 0.5083,
+        "w": 0.1594,
+        "h": 0.4583
+      },
+      "px": {
+        "x": 1024,
+        "y": 366,
+        "w": 204,
+        "h": 330
+      },
+      "aspect": 0.6182,
+      "palette": [
+        {
+          "hex": "#0a1617",
+          "coverage": 0.8766
+        },
+        {
+          "hex": "#e0e1e2",
+          "coverage": 0.0398
+        },
+        {
+          "hex": "#454749",
+          "coverage": 0.0293
+        },
+        {
+          "hex": "#a8aaac",
+          "coverage": 0.0277
+        },
+        {
+          "hex": "#757878",
+          "coverage": 0.0266
+        }
+      ],
+      "detail": {
+        "energy": 35.7551
+      },
+      "medium": "semantic",
+      "plate": null,
+      "text": null,
+      "type": {
+        "comp": {
+          "lines": 14,
+          "glyphs": 251,
+          "capHeightPx": 9.6,
+          "inkIsDark": false,
+          "allCaps": false,
+          "advance": 0.5666,
+          "advTall": 0.5693,
+          "advX": 0.547,
+          "gap": 0.107,
+          "xRatio": 0.7341,
+          "stemW": 0.1981,
+          "contrast": 1.0509,
+          "serif": 0.4866,
+          "densTall": 0.5981,
+          "densX": 0.6626,
+          "weight": 0.5981
+        },
+        "widthClass": "condensed",
+        "weightClass": "bold"
+      }
+    }
+  ]
+}

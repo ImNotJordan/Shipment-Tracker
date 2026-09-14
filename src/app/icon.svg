@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 340" width="340" height="340" role="img" aria-label="Live Board">
+  <defs>
+    <linearGradient id="chromeB" gradientUnits="userSpaceOnUse" x1="-20" y1="-102" x2="18" y2="-22">
+      <stop offset="0" stop-color="#fdfdfe"/>
+      <stop offset="0.22" stop-color="#c6cbd1"/>
+      <stop offset="0.42" stop-color="#767d85"/>
+      <stop offset="0.58" stop-color="#eef1f4"/>
+      <stop offset="0.78" stop-color="#98a0a8"/>
+      <stop offset="1" stop-color="#565d64"/>
+    </linearGradient>
+    <linearGradient id="redB" gradientUnits="userSpaceOnUse" x1="-20" y1="-102" x2="18" y2="-22">
+      <stop offset="0" stop-color="#ff7a72"/>
+      <stop offset="0.26" stop-color="#d81f22"/>
+      <stop offset="0.5" stop-color="#7e0a10"/>
+      <stop offset="0.7" stop-color="#ff5a4e"/>
+      <stop offset="1" stop-color="#6d070c"/>
+    </linearGradient>
+    <linearGradient id="arcB" gradientUnits="userSpaceOnUse" x1="46" y1="170" x2="232" y2="62">
+      <stop offset="0" stop-color="#b81318"/>
+      <stop offset="1" stop-color="#f0362c"/>
+    </linearGradient>
+  </defs>
+  <circle cx="170" cy="170" r="124" fill="none" stroke="#aab1b9" stroke-width="6" stroke-linecap="round" stroke-dasharray="0.1 19"/>
+  <path d="M46,170 A124,124 0 0 1 232,62.6" fill="none" stroke="url(#arcB)" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="46" cy="170" r="8" fill="#8d949c"/>
+  <circle cx="232" cy="62.6" r="13" fill="url(#arcB)"/>
+  <circle cx="232" cy="62.6" r="4.5" fill="#ffffff"/>
+  <g transform="translate(170,170) scale(0.85)" fill="none" stroke-width="12" stroke-linejoin="round">
+    <path d="M0,-22 C-24,-48 -24,-80 0,-102 C24,-80 24,-48 0,-22 Z" stroke="url(#chromeB)" transform="rotate(0)"/>
+    <path d="M0,-22 C-24,-48 -24,-80 0,-102 C24,-80 24,-48 0,-22 Z" stroke="url(#chromeB)" transform="rotate(72)"/>
+    <path d="M0,-22 C-24,-48 -24,-80 0,-102 C24,-80 24,-48 0,-22 Z" stroke="url(#chromeB)" transform="rotate(144)"/>
+    <path d="M0,-22 C-24,-48 -24,-80 0,-102 C24,-80 24,-48 0,-22 Z" stroke="url(#chromeB)" transform="rotate(216)"/>
+    <path d="M0,-22 C-24,-48 -24,-80 0,-102 C24,-80 24,-48 0,-22 Z" stroke="url(#redB)" transform="rotate(288)"/>
+  </g>
+</svg>

@@ -1,0 +1,5 @@
+{
+  "prompt": "Ronin live tracking board as an ATC flight-progress strip bay with an expanded selected strip showing map and waypoints.",
+  "model": "cursor-generate-image",
+  "aspect": "16:9"
+}

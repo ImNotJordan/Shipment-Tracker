@@ -1,0 +1,106 @@
+{
+  "regions": [
+    {
+      "id": "ident-bar",
+      "kind": "chrome",
+      "grid": "A0:J0",
+      "note": "Full-width graphite top bar with 1px bottom seam holding the wordmark, live-board label, and last-fetch clock."
+    },
+    {
+      "id": "wordmark",
+      "kind": "text",
+      "grid": "A0:B0",
+      "note": "RONIN in compact ivory caps."
+    },
+    {
+      "id": "live-board-label",
+      "kind": "text",
+      "grid": "B0:C0",
+      "note": "LIVE BOARD label to the right of the wordmark."
+    },
+    {
+      "id": "last-fetch",
+      "kind": "text",
+      "grid": "H0:J0",
+      "note": "LAST FETCH 10:24:37 UTC with a green live pip."
+    },
+    {
+      "id": "shipments-head",
+      "kind": "text",
+      "grid": "A1:C1",
+      "note": "SHIPMENTS header with count 24 and a filter glyph."
+    },
+    {
+      "id": "shipments-list",
+      "kind": "control",
+      "grid": "A1:C8",
+      "note": "Selectable tracking-number rows; selected row uses amber pip and amber figures; status words IN TRANSIT / DELIVERED / EXCEPTION at the right of each row."
+    },
+    {
+      "id": "shipments-tools",
+      "kind": "control",
+      "grid": "A9:C9",
+      "note": "SORT and FILTER text buttons on a 1px top seam."
+    },
+    {
+      "id": "map-title",
+      "kind": "text",
+      "grid": "D1:F1",
+      "note": "LIVE ROUTE TRACKING heading over the map."
+    },
+    {
+      "id": "map-west",
+      "kind": "control",
+      "grid": "D2:E7",
+      "note": "Google Map west extent: Pacific to Rockies, dark basemap, city labels; runtime Google Maps, not a shipped raster."
+    },
+    {
+      "id": "map-east",
+      "kind": "control",
+      "grid": "F2:H7",
+      "note": "Google Map east extent with the amber plotted course LA–Phoenix–Dallas–Memphis and IN TRANSIT current-position mark; runtime Google Maps."
+    },
+    {
+      "id": "map-credit",
+      "kind": "text",
+      "grid": "D8:E8",
+      "note": "Google Maps attribution."
+    },
+    {
+      "id": "map-legend",
+      "kind": "chrome",
+      "grid": "D9:F9",
+      "note": "Amber polyline swatch and IN TRANSIT legend."
+    },
+    {
+      "id": "map-tools",
+      "kind": "control",
+      "grid": "G9:H9",
+      "note": "Minus, plus, and RESET map controls."
+    },
+    {
+      "id": "facts-title",
+      "kind": "text",
+      "grid": "I1:J1",
+      "note": "SHIPMENT FACTS heading."
+    },
+    {
+      "id": "facts-grid",
+      "kind": "text",
+      "grid": "I1:J4",
+      "note": "Key-value shipment facts: tracking number, status, service, weight, dimensions, dates, origin, dest, consignee, pieces, special instructions."
+    },
+    {
+      "id": "history-title",
+      "kind": "text",
+      "grid": "I5:J5",
+      "note": "TRAVEL HISTORY heading."
+    },
+    {
+      "id": "history-list",
+      "kind": "text",
+      "grid": "I5:J9",
+      "note": "Vertical timed scan log with a 1px spine, hollow nodes, and an amber current IN TRANSIT node."
+    }
+  ]
+}

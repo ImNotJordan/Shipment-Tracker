@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function email() {
+      return request.auth.token.email;
+    }
+
+    function userPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function userDoc() {
+      return get(userPath()).data;
+    }
+
+    function hasProfile() {
+      return signedIn() && exists(userPath()) && userDoc().disabled != true;
+    }
+
+    function isPlatformAdminEmail() {
+      return email() == 'amilasan_jordan@hyacinthindustriesllc.com';
+    }
+
+    function isAdmin() {
+      return signedIn() && (
+        isPlatformAdminEmail() ||
+        (hasProfile() && userDoc().role == 'admin')
+      );
+    }
+
+    function isTracker() {
+      return hasProfile() && userDoc().role == 'tracker';
+    }
+
+    function isClient() {
+      return hasProfile() && userDoc().role == 'client';
+    }
+
+    function tenantId() {
+      return userDoc().companyId;
+    }
+
+    function sameTenant(companyId) {
+      return isAdmin() || (hasProfile() && tenantId() == companyId);
+    }
+
+    match /users/{uid} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        || (signedIn() && request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['mustChangePassword'])
+            && request.resource.data.mustChangePassword == false);
+    }
+
+    match /companies/{companyId} {
+      allow read: if sameTenant(companyId);
+      allow create, update, delete: if isAdmin();
+
+      match /shipments/{shipmentId} {
+        allow read: if sameTenant(companyId);
+        allow create, delete: if isAdmin() || (isTracker() && tenantId() == companyId);
+        allow update: if isAdmin()
+          || (isTracker() && tenantId() == companyId)
+          || (isClient() && tenantId() == companyId
+              && request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(['lastFetchedAt', 'lastError', 'snapshot', 'lastNotifiedFingerprint']));
+      }
+
+      match /audits/{auditId} {
+        allow read: if isAdmin() || (isTracker() && tenantId() == companyId);
+        allow create: if isAdmin() || (isTracker() && tenantId() == companyId);
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    match /shipments/{id} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
