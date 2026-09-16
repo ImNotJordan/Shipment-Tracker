@@ -3,7 +3,7 @@ import { FirebaseAuthError, signUpWithPassword } from "@/lib/firebase-auth";
 import { requireRole } from "@/lib/session";
 import { credentialsPdf, generatePassword } from "@/lib/credentials-pdf";
 import { parseEmailList } from "@/lib/emails";
-import { publicAppUrl, sendInviteEmail } from "@/lib/notify";
+import { publicAppUrl, sendInviteEmail, sendInviteSms } from "@/lib/notify";
 import { normalizePhone, phoneProblem } from "@/lib/phones";
 import {
   getCompanyById,
@@ -113,6 +113,8 @@ export async function POST(request: Request) {
     const cc = parseEmailList(body.cc).filter((item) => item !== email);
     let emailed = false;
     let emailError: string | undefined;
+    let smsSent = false;
+    let smsError: string | undefined;
     if (body.sendEmail !== false) {
       try {
         await sendInviteEmail({
@@ -129,6 +131,19 @@ export async function POST(request: Request) {
         emailed = true;
       } catch (error) {
         emailError = error instanceof Error ? error.message : "Could not send invite email.";
+      }
+    }
+    if (role === "client" && phone) {
+      try {
+        await sendInviteSms({
+          phone,
+          name: name || email,
+          companyName,
+          signInUrl,
+        });
+        smsSent = true;
+      } catch (error) {
+        smsError = error instanceof Error ? error.message : "Could not send invite SMS.";
       }
     }
 
@@ -150,6 +165,8 @@ export async function POST(request: Request) {
       signInUrl,
       emailed,
       emailError,
+      smsSent,
+      smsError,
       cc,
     });
   } catch (error) {

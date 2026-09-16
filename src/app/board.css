@@ -1879,6 +1879,13 @@ a.primary {
   padding: 8px 10px;
 }
 
+.ops-row-tools .ops-key {
+  height: auto;
+  min-height: 36px;
+  padding: 8px 12px;
+  flex: 0 0 auto;
+}
+
 .ops-meta {
   font-size: 10px;
   letter-spacing: 0.16em;

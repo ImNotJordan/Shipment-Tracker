@@ -1,5 +1,5 @@
 import "server-only";
-import { parseEmailList } from "./emails";
+import { normalizePhone } from "./phones";
 import { bootstrapToken, getCompanyById, listUsers, updateShipment } from "./store";
 import type { CompanyRecord, ShipmentRecord, TrackSnapshot } from "./types";
 
@@ -16,25 +16,81 @@ function openPhoneKey() {
 }
 
 function openPhoneFrom() {
-  return (process.env.OPENPHONE_FROM || process.env.QUO_FROM || "").trim();
+  return normalizePhone(process.env.OPENPHONE_FROM || process.env.QUO_FROM || "") ?? "";
+}
+
+function e164List(values: (string | null | undefined)[]) {
+  return [...new Set(values.map((value) => normalizePhone(value)).filter((value): value is string => Boolean(value)))];
 }
 
 function openPhoneBase() {
-  return (process.env.OPENPHONE_API_BASE || "https://api.quo.com").replace(/\/$/, "");
+  return (process.env.OPENPHONE_API_BASE || "").replace(/\/$/, "");
+}
+
+function openPhoneBases() {
+  return [...new Set([openPhoneBase(), "https://api.openphone.com", "https://api.quo.com"].filter(Boolean))];
 }
 
 export function snapshotFingerprint(snapshot?: TrackSnapshot | null) {
   if (!snapshot) return "";
-  const last = snapshot.events[snapshot.events.length - 1];
-  return [
-    snapshot.facts.statusCode ?? "",
-    snapshot.facts.status,
-    String(snapshot.events.length),
-    last?.at ?? "",
-    last?.description ?? "",
-    last?.city ?? "",
-    last?.state ?? "",
-  ].join("|");
+  return snapshot.events.map(eventKey).join("\n");
+}
+
+function eventKey(event: { at: string; description: string; city: string | null; state: string | null }) {
+  return [event.at, event.description, event.city ?? "", event.state ?? ""].join("|");
+}
+
+function parseNotifiedKeys(raw: string | null | undefined) {
+  const value = raw ?? "";
+  if (!value) return null;
+  if (value === "ev" || value.startsWith("ev\n")) {
+    return new Set(value.split("\n").slice(1).filter(Boolean));
+  }
+  return null;
+}
+
+function serializeNotifiedKeys(keys: string[]) {
+  return ["ev", ...keys].join("\n");
+}
+
+function newScanEvents(
+  snapshot: TrackSnapshot,
+  previous: TrackSnapshot | null,
+  lastNotified: string | null,
+) {
+  const already = alreadyNotifiedKeys(snapshot, previous, lastNotified);
+  if (already.size === 0) {
+    const latest = snapshot.events[snapshot.events.length - 1];
+    return { already, fresh: latest ? [latest] : [] };
+  }
+  return {
+    already,
+    fresh: snapshot.events.filter((event) => !already.has(eventKey(event))),
+  };
+}
+
+function alreadyNotifiedKeys(
+  snapshot: TrackSnapshot,
+  previous: TrackSnapshot | null,
+  lastNotified: string | null,
+) {
+  const stored = parseNotifiedKeys(lastNotified);
+  if (stored) return stored;
+  const legacy = lastNotified ? legacyEventKey(lastNotified) : null;
+  if (legacy) {
+    const index = snapshot.events.findIndex((event) => eventKey(event) === legacy);
+    if (index >= 0) {
+      return new Set(snapshot.events.slice(0, index + 1).map(eventKey));
+    }
+  }
+  if (previous?.events.length) return new Set(previous.events.map(eventKey));
+  return new Set<string>();
+}
+
+function legacyEventKey(raw: string) {
+  const parts = raw.split("|");
+  if (parts.length < 7) return null;
+  return parts.slice(3).join("|");
 }
 
 function resendKey() {
@@ -111,76 +167,90 @@ function formatWhen(value?: string | null) {
   }).format(date);
 }
 
-async function clientEmails(companyId: string, token: string) {
+async function notifyAudience(companyId: string, cc: string[], token: string) {
   const users = await listUsers(token);
-  return users
-    .filter(
-      (user) =>
-        user.role === "client" &&
-        user.companyId === companyId &&
-        !user.disabled &&
-        user.email.includes("@"),
-    )
-    .map((user) => user.email);
-}
-
-async function clientPhones(companyId: string, token: string) {
-  const users = await listUsers(token);
-  return [
-    ...new Set(
-      users
-        .filter(
-          (user) =>
-            user.role === "client" &&
-            user.companyId === companyId &&
-            !user.disabled &&
-            user.phone,
-        )
-        .map((user) => user.phone as string),
-    ),
+  const active = users.filter((user) => !user.disabled);
+  const clients = active.filter(
+    (user) => user.role === "client" && user.companyId === companyId,
+  );
+  const emails = [
+    ...new Set([
+      ...clients.map((user) => user.email).filter((email) => email.includes("@")),
+      ...cc.map((email) => email.trim().toLowerCase()).filter(Boolean),
+    ]),
   ];
+  const ccSet = new Set(emails);
+  const phones = e164List(
+    active
+      .filter(
+        (user) =>
+          user.phone &&
+          ((user.role === "client" && user.companyId === companyId) || ccSet.has(user.email)),
+      )
+      .map((user) => user.phone),
+  );
+  return { emails, phones };
 }
 
 async function sendOpenPhone(to: string[], content: string) {
   if (!openPhoneConfigured()) {
     throw new Error("SMS is not configured. Add OPENPHONE_API_KEY and OPENPHONE_FROM.");
   }
-  for (let i = 0; i < to.length; i += 10) {
-    const chunk = to.slice(i, i + 10);
-    const res = await fetch(`${openPhoneBase()}/v1/messages`, {
-      method: "POST",
-      headers: {
-        Authorization: openPhoneKey(),
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        content,
-        from: openPhoneFrom(),
-        to: chunk,
-        setInboxStatus: "done",
-      }),
-      cache: "no-store",
-    });
-    if (!res.ok) {
+  const from = openPhoneFrom();
+  const recipients = e164List(to);
+  if (!from) {
+    throw new Error("OPENPHONE_FROM must be a full number, like +15028016431.");
+  }
+  if (!recipients.length) {
+    throw new Error("No valid client phone numbers to text.");
+  }
+  const errors: string[] = [];
+  for (const number of recipients) {
+    let lastError = `OpenPhone rejected ${number}.`;
+    let delivered = false;
+    for (const base of openPhoneBases()) {
+      const res = await fetch(`${base}/v1/messages`, {
+        method: "POST",
+        headers: {
+          Authorization: openPhoneKey(),
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          content,
+          from,
+          to: [number],
+          setInboxStatus: "done",
+        }),
+        cache: "no-store",
+      });
+      if (res.ok) {
+        delivered = true;
+        break;
+      }
       const json = (await res.json().catch(() => ({}))) as {
         message?: string;
         title?: string;
         description?: string;
       };
-      throw new Error(
-        json.message || json.description || json.title || `OpenPhone rejected the message (${res.status}).`,
-      );
+      lastError =
+        json.message ||
+        json.description ||
+        json.title ||
+        `OpenPhone rejected ${number} (${res.status}).`;
     }
+    if (!delivered) errors.push(lastError);
   }
+  if (errors.length) throw new Error(errors.join(" "));
 }
 
 function emailHtml(input: {
   company: CompanyRecord;
   shipment: ShipmentRecord;
   snapshot: TrackSnapshot;
+  event?: TrackSnapshot["events"][number];
 }) {
   const facts = input.snapshot.facts;
-  const latest = input.snapshot.events[input.snapshot.events.length - 1];
+  const latest = input.event ?? input.snapshot.events[input.snapshot.events.length - 1];
   const place = latest
     ? [latest.city, latest.state].filter(Boolean).join(", ") || "Location pending"
     : "—";
@@ -194,7 +264,7 @@ function emailHtml(input: {
       <p style="margin:0 0 18px;color:#c0c1c1;line-height:1.5;">FedEx posted a new tracking update for this shipment.</p>
       <table style="width:100%;border-collapse:collapse;font-size:13px;">
         <tr><td style="padding:8px 0;color:#c0c1c1;">TRACKING</td><td style="padding:8px 0;text-align:right;">${escapeHtml(facts.trackingNumber)}</td></tr>
-        <tr><td style="padding:8px 0;color:#c0c1c1;">STATUS</td><td style="padding:8px 0;text-align:right;color:#e3b341;">${escapeHtml(facts.status)}</td></tr>
+        <tr><td style="padding:8px 0;color:#c0c1c1;">STATUS</td><td style="padding:8px 0;text-align:right;color:#e3b341;">${escapeHtml(latest?.description ?? facts.status)}</td></tr>
         <tr><td style="padding:8px 0;color:#c0c1c1;">LATEST SCAN</td><td style="padding:8px 0;text-align:right;">${escapeHtml(latest?.description ?? "Awaiting scan")}</td></tr>
         <tr><td style="padding:8px 0;color:#c0c1c1;">WHEN</td><td style="padding:8px 0;text-align:right;">${escapeHtml(formatWhen(latest?.at ?? input.snapshot.fetchedAt))}</td></tr>
         <tr><td style="padding:8px 0;color:#c0c1c1;">PLACE</td><td style="padding:8px 0;text-align:right;">${escapeHtml(place)}</td></tr>
@@ -207,6 +277,14 @@ function emailHtml(input: {
 </html>`;
 }
 
+async function directoryToken(fallback: string) {
+  try {
+    return await bootstrapToken();
+  } catch {
+    return fallback;
+  }
+}
+
 export async function notifyTrackingUpdate(input: {
   companyId: string;
   shipment: ShipmentRecord;
@@ -216,68 +294,87 @@ export async function notifyTrackingUpdate(input: {
   if (!resendConfigured() && !openPhoneConfigured()) return;
   const snapshot = input.shipment.snapshot;
   if (!snapshot) return;
-  const nextPrint = snapshotFingerprint(snapshot);
-  if (!nextPrint) return;
-  if (nextPrint === snapshotFingerprint(input.previous)) return;
-  if (nextPrint === (input.shipment.lastNotifiedFingerprint ?? "")) return;
+  const { already, fresh } = newScanEvents(
+    snapshot,
+    input.previous,
+    input.shipment.lastNotifiedFingerprint,
+  );
+  if (!fresh.length) return;
 
-  const company = await getCompanyById(input.companyId, input.token);
+  const adminToken = await directoryToken(input.token);
+  const company = await getCompanyById(input.companyId, adminToken);
   if (!company?.notifyEnabled) return;
 
-  const clients = await clientEmails(input.companyId, input.token);
-  const phones = await clientPhones(input.companyId, input.token);
-  const ccConfigured = company.notifyCc.filter((email) => !clients.includes(email));
-  const to = clients.length ? clients : ccConfigured;
-  const cc = clients.length ? ccConfigured : [];
+  const { emails: to, phones } = await notifyAudience(
+    input.companyId,
+    company.notifyCc,
+    adminToken,
+  );
   if (!to.length && !phones.length) return;
 
   const facts = snapshot.facts;
-  const smsText = [
-    `${company.name} · ${facts.trackingNumber} · ${facts.status}`,
-    boardUrl(company.slug),
-  ].join("\n");
-
+  const delivered = new Set(already);
   let sent = false;
-  if (resendConfigured() && to.length) {
-    try {
-      await sendResend(updatesFromAddress(), {
-        to,
-        cc: cc.length ? cc : undefined,
-        subject: `${company.name} · ${facts.trackingNumber} · ${facts.status}`,
-        html: emailHtml({ company, shipment: input.shipment, snapshot }),
-        text: [
-          `${company.name} FedEx update`,
-          `Tracking: ${facts.trackingNumber}`,
-          `Status: ${facts.status}`,
-          `Board: ${boardUrl(company.slug)}`,
-        ].join("\n"),
-      });
-      sent = true;
-    } catch {
-      // SMS may still go out.
+  const wantEmail = resendConfigured() && to.length > 0;
+  const wantSms = openPhoneConfigured() && phones.length > 0;
+  for (const event of fresh) {
+    const place = [event.city, event.state].filter(Boolean).join(", ");
+    const scanLabel = [event.description, place].filter(Boolean).join(" · ") || facts.status;
+    let emailOk = !wantEmail;
+    let smsOk = !wantSms;
+    if (wantEmail) {
+      try {
+        await sendResend(updatesFromAddress(), {
+          to,
+          subject: `${company.name} · ${facts.trackingNumber} · ${scanLabel}`,
+          html: emailHtml({ company, shipment: input.shipment, snapshot, event }),
+          text: [
+            `${company.name} FedEx update`,
+            `Tracking: ${facts.trackingNumber}`,
+            `Scan: ${event.description}`,
+            `When: ${formatWhen(event.at)}`,
+            `Place: ${place || "—"}`,
+            `Board: ${boardUrl(company.slug)}`,
+          ].join("\n"),
+        });
+        emailOk = true;
+      } catch (error) {
+        console.error("Resend tracking email failed", error);
+      }
     }
-  }
-  if (openPhoneConfigured() && phones.length) {
-    try {
-      await sendOpenPhone(phones, smsText);
+    if (wantSms) {
+      try {
+        await sendOpenPhone(
+          phones,
+          [`${company.name} · ${facts.trackingNumber} · ${scanLabel}`, boardUrl(company.slug)].join("\n"),
+        );
+        smsOk = true;
+      } catch (error) {
+        console.error("OpenPhone SMS failed", error);
+      }
+    }
+    if (emailOk && smsOk) {
       sent = true;
-    } catch {
-      // Email may have already gone out.
+      delivered.add(eventKey(event));
     }
   }
   if (!sent) return;
+  if (already.size === 0) {
+    for (const event of snapshot.events) delivered.add(eventKey(event));
+  }
+  const notified = snapshot.events.map(eventKey).filter((key) => delivered.has(key));
   try {
     await updateShipment(
       input.companyId,
       input.shipment.id,
-      { lastNotifiedFingerprint: nextPrint },
-      await bootstrapToken(),
+      { lastNotifiedFingerprint: serializeNotifiedKeys(notified) },
+      adminToken,
     );
   } catch {
     await updateShipment(
       input.companyId,
       input.shipment.id,
-      { lastNotifiedFingerprint: nextPrint },
+      { lastNotifiedFingerprint: serializeNotifiedKeys(notified) },
       input.token,
     );
   }
@@ -348,4 +445,40 @@ export async function sendInviteEmail(input: {
   });
 }
 
-export { parseEmailList };
+export async function sendInviteSms(input: {
+  phone: string | null | undefined;
+  name: string;
+  companyName: string;
+  signInUrl: string;
+}) {
+  if (!openPhoneConfigured()) return;
+  const phone = normalizePhone(input.phone);
+  if (!phone) return;
+  await sendOpenPhone(
+    [phone],
+    [
+      `${input.name || "You"} are invited to ${input.companyName} Live Board.`,
+      `Sign in: ${input.signInUrl}`,
+    ].join("\n"),
+  );
+}
+
+export async function sendTestClientSms(companyId: string, token: string) {
+  if (!openPhoneConfigured()) {
+    throw new Error("SMS is not configured. Add OPENPHONE_API_KEY and OPENPHONE_FROM.");
+  }
+  const company = await getCompanyById(companyId, token);
+  if (!company) throw new Error("Company not found.");
+  const { phones } = await notifyAudience(companyId, company.notifyCc, token);
+  if (!phones.length) {
+    throw new Error("No client phone numbers saved for this company.");
+  }
+  await sendOpenPhone(
+    phones,
+    [
+      `${company.name} Live Board will text this number when FedEx status changes.`,
+      boardUrl(company.slug),
+    ].join("\n"),
+  );
+  return phones;
+}

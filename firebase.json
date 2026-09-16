@@ -15,7 +15,8 @@
     ],
     "frameworksBackend": {
       "region": "us-central1",
-      "memory": "1GiB"
+      "memory": "1GiB",
+      "timeoutSeconds": 120
     }
   }
 }

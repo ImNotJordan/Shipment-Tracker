@@ -11,6 +11,34 @@ import { BusyControl } from "./ActionProgress";
 import { OpsToast, useOpsToast } from "./OpsToast";
 import type { CompanyRecord, Role, SessionUser, UserRecord } from "@/lib/types";
 
+type UserEdit = {
+  role: Role;
+  companyId: string;
+  phone: string;
+};
+
+function draftFor(row: UserRecord, edits: Record<string, UserEdit>): UserEdit {
+  return (
+    edits[row.id] ?? {
+      role: row.role,
+      companyId: row.companyId ?? "",
+      phone: row.phone ?? "",
+    }
+  );
+}
+
+function draftDirty(row: UserRecord, edit: UserEdit) {
+  const nextPhone = edit.role === "client" ? normalizePhone(edit.phone) : null;
+  const nextCompany = edit.role === "admin" ? null : edit.companyId || null;
+  const phoneInvalid = edit.role === "client" && Boolean(edit.phone.trim()) && !nextPhone;
+  return (
+    phoneInvalid ||
+    edit.role !== row.role ||
+    nextCompany !== (row.companyId ?? null) ||
+    nextPhone !== (row.phone ?? null)
+  );
+}
+
 function downloadPdf(base64: string, email: string) {
   const url = pdfUrlFromBase64(base64);
   const link = document.createElement("a");
@@ -79,8 +107,9 @@ function AdminWorkbench({
   );
   const [emailConfigured, setEmailConfigured] = useState(false);
   const [smsConfigured, setSmsConfigured] = useState(false);
+  const [edits, setEdits] = useState<Record<string, UserEdit>>({});
   const [busy, setBusy] = useState<{
-    key: "create" | "notify" | "invite" | "role" | "delete";
+    key: "create" | "notify" | "invite" | "save" | "sms" | "delete";
     id?: string;
     label: string;
     value?: number;
@@ -224,6 +253,27 @@ function AdminWorkbench({
     }
   }
 
+  async function onSendTestSms(company: CompanyRecord) {
+    const okSend = await confirm({
+      title: "SEND TEST SMS",
+      body: `Text every saved client phone for ${company.name} from the OpenPhone number?`,
+      confirmLabel: "SEND",
+    });
+    if (!okSend) return;
+    setBusy({ key: "sms", id: company.id, label: "SENDING SMS" });
+    try {
+      const res = await fetch(`/api/companies/${company.id}/sms`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) toast.show("bad", json.error ?? "Could not send SMS.");
+      else {
+        const phones = Array.isArray(json.phones) ? json.phones.join(", ") : "client phones";
+        toast.show("ok", `SMS sent to ${phones}.`);
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function onSaveBrand(company: CompanyRecord) {
     const okSave = await confirm({
       title: "SAVE COLORS",
@@ -294,6 +344,8 @@ function AdminWorkbench({
         toast.show("bad", json.error ?? "Could not invite user.");
         return;
       }
+      if (json.smsError) toast.show("bad", json.smsError);
+      else if (json.smsSent) toast.show("ok", `Invite SMS sent to ${invite.phone}.`);
       const pdfBase64 = json.pdfBase64 as string | undefined;
       const previewUrl = pdfBase64 ? pdfUrlFromBase64(pdfBase64) : "";
       if (previewUrl) {
@@ -393,64 +445,72 @@ function AdminWorkbench({
     }
   }
 
-  async function onEditUser(id: string, patch: { role?: Role; companyId?: string | null }) {
-    const row = users.find((item) => item.id === id);
-    const okEdit = await confirm({
-      title: patch.role ? "CHANGE ROLE" : "CHANGE COMPANY",
-      body: patch.role
-        ? `Change ${row?.email ?? "this user"} to ${patch.role}? They will sign in to a different portal.`
-        : `Move ${row?.email ?? "this user"} to another company board?`,
-      confirmLabel: "CHANGE",
+  function patchEdit(id: string, patch: Partial<UserEdit>) {
+    setEdits((current) => {
+      const row = users.find((item) => item.id === id);
+      if (!row) return current;
+      return { ...current, [id]: { ...draftFor(row, current), ...patch } };
     });
-    if (!okEdit) return;
-    setBusy({ key: "role", id, label: patch.role ? "CHANGING ROLE" : "CHANGING COMPANY" });
+  }
+
+  async function onSaveUser(id: string) {
+    const row = users.find((item) => item.id === id);
+    if (!row) return;
+    const edit = draftFor(row, edits);
+    const nextPhone = edit.role === "client" ? normalizePhone(edit.phone) : null;
+    const nextCompany = edit.role === "admin" ? null : edit.companyId || null;
+    if (edit.role === "client" && edit.phone.trim() && !nextPhone) {
+      toast.show("bad", phoneProblem(edit.phone) ?? "Invalid phone.");
+      return;
+    }
+    if (edit.role !== "admin" && !nextCompany) {
+      toast.show("bad", "Tracker and client accounts must be assigned to a company.");
+      return;
+    }
+    if (!draftDirty(row, edit)) return;
+
+    const changes: string[] = [];
+    if (edit.role !== row.role) changes.push(`role to ${edit.role}`);
+    if (nextCompany !== (row.companyId ?? null)) {
+      const companyName =
+        companies.find((item) => item.id === nextCompany)?.name ?? "another company";
+      changes.push(edit.role === "admin" ? "all companies" : `company to ${companyName}`);
+    }
+    if (nextPhone !== (row.phone ?? null)) {
+      changes.push(nextPhone ? `SMS number to ${nextPhone}` : "clear the SMS number");
+    }
+    const okSave = await confirm({
+      title: "SAVE USER",
+      body: `Save ${changes.join(", ")} for ${row.email}?`,
+      confirmLabel: "SAVE",
+    });
+    if (!okSave) return;
+
+    setBusy({ key: "save", id, label: "SAVING USER" });
     try {
       const res = await fetch(`/api/users/${id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(patch),
+        body: JSON.stringify({
+          role: edit.role,
+          companyId: nextCompany,
+          phone: nextPhone,
+        }),
       });
       const json = await res.json();
-      if (!res.ok) toast.show("bad", json.error ?? "Could not update user.");
+      if (!res.ok) toast.show("bad", json.error ?? "Could not save user.");
       else {
-        toast.show(
-          "ok",
-          patch.role
-            ? `${row?.email ?? "User"} is now ${patch.role}.`
-            : `${row?.email ?? "User"} moved to a new company.`,
-        );
+        setEdits((current) => {
+          const next = { ...current };
+          delete next[id];
+          return next;
+        });
+        toast.show("ok", `Saved ${row.email}.`);
       }
       await load();
     } finally {
       setBusy(null);
     }
-  }
-
-  async function onSavePhone(id: string, raw: string) {
-    const row = users.find((item) => item.id === id);
-    const next = normalizePhone(raw);
-    const current = row?.phone ?? null;
-    if (raw.trim() && !next) {
-      toast.show("bad", phoneProblem(raw) ?? "Invalid phone.");
-      return;
-    }
-    if (next === current) return;
-    const res = await fetch(`/api/users/${id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ phone: next }),
-    });
-    const json = await res.json();
-    if (!res.ok) toast.show("bad", json.error ?? "Could not save phone.");
-    else {
-      toast.show(
-        "ok",
-        next
-          ? `SMS number saved for ${row?.email ?? "user"}.`
-          : `SMS number cleared for ${row?.email ?? "user"}.`,
-      );
-    }
-    await load();
   }
 
   const selected = companies.find((item) => item.id === selectedId) ?? null;
@@ -671,7 +731,11 @@ function AdminWorkbench({
             {users.length === 0 ? (
               <li className="empty-row">No users yet. Invite from the dock.</li>
             ) : (
-              users.map((row) => (
+              users.map((row) => {
+                const edit = draftFor(row, edits);
+                const dirty = draftDirty(row, edit);
+                const locked = row.id === user.id || Boolean(busy);
+                return (
                 <li key={row.id} className={row.disabled ? "is-revoked" : undefined}>
                   <div className="ops-row ops-row-static">
                     <span className="ship-num">
@@ -686,45 +750,50 @@ function AdminWorkbench({
                   </div>
                   <div className="ops-row-tools">
                     <select
-                      value={row.role}
-                      disabled={row.id === user.id || Boolean(busy)}
+                      value={edit.role}
+                      disabled={locked}
                       aria-label={`Role for ${row.email}`}
-                      onChange={(event) =>
-                        void onEditUser(row.id, {
-                          role: event.target.value as Role,
+                      onChange={(event) => {
+                        const role = event.target.value as Role;
+                        patchEdit(row.id, {
+                          role,
                           companyId:
-                            event.target.value === "admin"
-                              ? null
-                              : row.companyId ?? companies[0]?.id,
-                        })
-                      }
+                            role === "admin"
+                              ? ""
+                              : edit.companyId || row.companyId || companies[0]?.id || "",
+                          phone: role === "client" ? edit.phone : "",
+                        });
+                      }}
                     >
                       <option value="client">client</option>
                       <option value="tracker">tracker</option>
                       <option value="admin">admin</option>
                     </select>
-                    {row.role === "client" ? (
+                    {edit.role === "client" ? (
                       <input
                         type="tel"
                         inputMode="tel"
-                        defaultValue={row.phone ?? ""}
-                        key={`${row.id}-${row.phone ?? "none"}`}
+                        value={edit.phone}
                         aria-label={`Phone for ${row.email}`}
                         placeholder="+63917xxxxxxx"
-                        disabled={row.id === user.id || Boolean(busy)}
-                        onBlur={(event) => void onSavePhone(row.id, event.target.value)}
+                        disabled={locked}
+                        onChange={(event) => patchEdit(row.id, { phone: event.target.value })}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            void onSaveUser(row.id);
+                          }
+                        }}
                       />
                     ) : null}
-                    {row.role === "admin" ? (
+                    {edit.role === "admin" ? (
                       <span className="ops-meta">ALL COMPANIES</span>
                     ) : (
                       <select
-                        value={row.companyId ?? ""}
+                        value={edit.companyId}
                         aria-label={`Company for ${row.email}`}
-                        disabled={row.id === user.id || Boolean(busy)}
-                        onChange={(event) =>
-                          void onEditUser(row.id, { companyId: event.target.value })
-                        }
+                        disabled={locked}
+                        onChange={(event) => patchEdit(row.id, { companyId: event.target.value })}
                       >
                         {companies.map((company) => (
                           <option key={company.id} value={company.id}>
@@ -737,6 +806,14 @@ function AdminWorkbench({
                       <span className="ops-meta">YOU</span>
                     ) : (
                       <>
+                        <button
+                          className="ops-key"
+                          type="button"
+                          disabled={!dirty || Boolean(busy)}
+                          onClick={() => void onSaveUser(row.id)}
+                        >
+                          {busy?.key === "save" && busy.id === row.id ? busy.label : "SAVE"}
+                        </button>
                         {row.disabled ? null : (
                           <button
                             className="danger"
@@ -757,12 +834,10 @@ function AdminWorkbench({
                         </button>
                       </>
                     )}
-                    {busy?.key === "role" && busy.id === row.id ? (
-                      <BusyControl active label={busy.label} />
-                    ) : null}
                   </div>
                 </li>
-              ))
+                );
+              })
             )}
           </ul>
         )}
@@ -877,12 +952,10 @@ function AdminWorkbench({
                       {emailConfigured || smsConfigured
                         ? [
                             emailConfigured
-                              ? "Each new FedEx status emails every Client from updates@rahyo.com."
+                              ? "Each new FedEx scan emails every Client and the CC list from updates@rahyo.com."
                               : null,
                             smsConfigured
-                              ? emailConfigured
-                                ? "Clients with a phone also get an SMS from the OpenPhone number."
-                                : "Each new FedEx status texts every Client with a phone from the OpenPhone number."
+                              ? "The same scan is also texted from OpenPhone to every saved client phone."
                               : "Add OPENPHONE_API_KEY and OPENPHONE_FROM to send SMS.",
                           ]
                             .filter(Boolean)
@@ -909,6 +982,23 @@ function AdminWorkbench({
                     <p className="ops-meta">
                       SMS: {clientPhones.length ? clientPhones.join(", ") : "no client phones yet"}
                     </p>
+                    {smsConfigured ? (
+                      <BusyControl
+                        active={busy?.key === "sms" && busy.id === selected.id}
+                        label={busy?.key === "sms" ? busy.label : "Sending SMS"}
+                      >
+                        <button
+                          className="ops-key"
+                          type="button"
+                          disabled={Boolean(busy) || !clientPhones.length}
+                          onClick={() => onSendTestSms(selected)}
+                        >
+                          {busy?.key === "sms" && busy.id === selected.id
+                            ? busy.label
+                            : "SEND TEST SMS"}
+                        </button>
+                      </BusyControl>
+                    ) : null}
                     <label>
                       CC EMAILS
                       <textarea
@@ -957,6 +1047,10 @@ function AdminWorkbench({
                 <p className="empty-copy">
                   After you invite someone, their credentials PDF opens here and beside the send
                   confirm.
+                </p>
+                <p className="empty-copy">
+                  Directory edits stay on the row until you press SAVE. Role, company, and phone
+                  write together.
                 </p>
               </div>
             )}
