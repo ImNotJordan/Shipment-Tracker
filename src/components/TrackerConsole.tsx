@@ -1,10 +1,24 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import { Filter, Package, ScrollText } from "lucide-react";
 import { OpsChrome } from "./OpsChrome";
 import { ConfirmProvider, openViewAsTab, useConfirm } from "./ConfirmDialog";
 import { pulsePanel, staggerRows } from "@/lib/ops-motion";
+import {
+  TRACKING_DIGITS,
+  caretAfter,
+  groupTracking,
+  trackingDigits,
+} from "@/lib/tracking-number";
+import { ActionProgress } from "./ActionProgress";
 import { OpsToast, useOpsToast } from "./OpsToast";
 import type { AuditRecord, CompanyRecord, SessionUser, ShipmentRecord } from "@/lib/types";
 
@@ -30,6 +44,8 @@ export function TrackerConsole(props: {
   initialAudits: AuditRecord[];
   initialCompanyId: string;
   lockCompany: boolean;
+  /** Rendered inside Admin's preview pane, which supplies the chrome. */
+  embedded?: boolean;
 }) {
   return (
     <ConfirmProvider>
@@ -45,6 +61,7 @@ function TrackerWorkbench({
   initialAudits,
   initialCompanyId,
   lockCompany,
+  embedded,
 }: {
   user: SessionUser;
   initialCompanies: CompanyRecord[];
@@ -52,15 +69,20 @@ function TrackerWorkbench({
   initialAudits: AuditRecord[];
   initialCompanyId: string;
   lockCompany: boolean;
+  embedded?: boolean;
 }) {
   const [companies, setCompanies] = useState(initialCompanies);
   const [shipments, setShipments] = useState(initialShipments);
   const [audits, setAudits] = useState(initialAudits);
   const [companyId, setCompanyId] = useState(initialCompanyId);
-  const [selectedId, setSelectedId] = useState(initialShipments[0]?.id ?? null);
-  const [numbers, setNumbers] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(initialShipments[0]?.id ?? null);
+  // Raw digits only. The grouping a field shows is never what is stored.
+  const [numbers, setNumbers] = useState<string[]>([""]);
+  const numberRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const cueRef = useRef<{ index: number; caret?: number; focus?: boolean } | null>(null);
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [pending, setPending] = useState(false);
+  const [switching, setSwitching] = useState(false);
   const viewing = user.role === "admin";
   const confirm = useConfirm();
   const toast = useOpsToast();
@@ -86,6 +108,47 @@ function TrackerWorkbench({
     );
   }
 
+  // Caret and focus are restored after the new value lands, or React's
+  // re-render throws the caret to the end of the field on every keystroke.
+  useEffect(() => {
+    const cue = cueRef.current;
+    if (!cue) return;
+    cueRef.current = null;
+    const field = numberRefs.current[cue.index];
+    if (!field) return;
+    if (cue.focus) field.focus();
+    if (typeof cue.caret === "number") field.setSelectionRange(cue.caret, cue.caret);
+  });
+
+  function onNumberChange(index: number, event: ChangeEvent<HTMLInputElement>) {
+    const field = event.target;
+    const typed = field.value.slice(0, field.selectionStart ?? field.value.length);
+    const digits = trackingDigits(field.value);
+    cueRef.current = {
+      index,
+      caret: caretAfter(Math.min(trackingDigits(typed).length, digits.length)),
+    };
+    setNumbers((current) => current.map((item, i) => (i === index ? digits : item)));
+  }
+
+  function onNumberKey(index: number, event: KeyboardEvent<HTMLInputElement>) {
+    const digits = numbers[index] ?? "";
+    if (event.key === "Enter") {
+      // A field never submits the form: Enter is how you reach the next number.
+      event.preventDefault();
+      if (digits.length < TRACKING_DIGITS) return;
+      cueRef.current = { index: index + 1, focus: true };
+      if (index === numbers.length - 1) setNumbers((current) => [...current, ""]);
+      else numberRefs.current[index + 1]?.focus();
+      return;
+    }
+    if (event.key === "Backspace" && !digits && numbers.length > 1) {
+      event.preventDefault();
+      cueRef.current = { index: Math.max(0, index - 1), focus: true };
+      setNumbers((current) => current.filter((_, i) => i !== index));
+    }
+  }
+
   useEffect(() => {
     if (initialCompanyId) return;
     void load();
@@ -101,18 +164,28 @@ function TrackerWorkbench({
   }, [companyId]);
 
   async function onCompany(id: string) {
-    if (lockCompany) return;
+    if (lockCompany || id === companyId) return;
+    setSwitching(true);
+    setShipments([]);
+    setAudits([]);
+    setSelectedId(null);
     setCompanyId(id);
-    await load(id);
+    try {
+      await load(id);
+    } finally {
+      setSwitching(false);
+    }
     pulsePanel(detailRef.current);
   }
 
   async function onAdd(event: FormEvent) {
     event.preventDefault();
     if (viewing) return;
+    const entered = numbers.filter(Boolean);
+    if (!entered.length) return;
     const okAdd = await confirm({
       title: "ADD TO BOARD",
-      body: "Attach these FedEx numbers to this company and fetch live status?",
+      body: `Attach ${entered.length} FedEx number${entered.length === 1 ? "" : "s"} to this company and fetch live status?`,
       confirmLabel: "ADD",
     });
     if (!okAdd) return;
@@ -120,7 +193,7 @@ function TrackerWorkbench({
     const res = await fetch("/api/shipments", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ companyId, trackingNumbers: numbers }),
+      body: JSON.stringify({ companyId, trackingNumbers: entered }),
     });
     const json = await res.json();
     setPending(false);
@@ -135,7 +208,7 @@ function TrackerWorkbench({
         ? `Attached ${count} FedEx number${count === 1 ? "" : "s"} and requested live status.`
         : "Those numbers were already on the board.",
     );
-    setNumbers("");
+    setNumbers([""]);
     await load(companyId);
     pulsePanel(detailRef.current);
   }
@@ -207,7 +280,7 @@ function TrackerWorkbench({
   return (
     <>
       <OpsToast toast={toast.toast} onDismiss={toast.dismiss} />
-      <OpsChrome user={user} station="TRACKER" clientSlug={selectedCompany?.slug}>
+      <OpsChrome user={user} station="TRACKER" clientSlug={selectedCompany?.slug} brand={selectedCompany} embedded={embedded}>
       <section className="ops-dock">
         <div className="ops-tools">
           <Package size={12} aria-hidden />
@@ -234,28 +307,46 @@ function TrackerWorkbench({
               ))}
             </select>
           </label>
-          <label>
-            TRACKING NUMBERS
-            <textarea
-              value={numbers}
-              onChange={(event) => setNumbers(event.target.value)}
-              placeholder={"784931205581\n884011927730"}
-              required
-              disabled={viewing}
-            />
-          </label>
-          <button className="primary" type="submit" disabled={pending || viewing}>
+          <p className="ops-field-label">TRACKING NUMBERS</p>
+          <div className="ops-numbers">
+            {numbers.map((digits, index) => (
+              <input
+                key={index}
+                ref={(node) => {
+                  numberRefs.current[index] = node;
+                }}
+                value={groupTracking(digits)}
+                onChange={(event) => onNumberChange(index, event)}
+                onKeyDown={(event) => onNumberKey(index, event)}
+                inputMode="numeric"
+                autoComplete="off"
+                spellCheck={false}
+                placeholder="8771 1477 9998"
+                aria-label={`FedEx tracking number ${index + 1}`}
+                disabled={viewing}
+              />
+            ))}
+            <p className="ops-meta">
+              {TRACKING_DIGITS} digits. Press Enter on a full number to add another.
+            </p>
+          </div>
+          <button
+            className="primary"
+            type="submit"
+            disabled={pending || viewing || !numbers.some(Boolean)}
+          >
             {pending ? "FETCHING FEDEX" : "ADD TO BOARD"}
           </button>
         </form>
       </section>
 
       <section className="ops-stage">
+        <ActionProgress overlay inset active={switching} label="LOADING COMPANY" />
         <div className="shipments-head">
           <Filter size={12} aria-hidden />
           <span>{selectedCompany ? selectedCompany.name.toUpperCase() : "SHIPMENTS"}</span>
           <b>{shipments.length}</b>
-          {selectedCompany ? (
+          {selectedCompany && !embedded ? (
             <button
               type="button"
               className="ops-open"

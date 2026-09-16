@@ -29,7 +29,7 @@ const ConfirmContext = createContext<((options: ConfirmOptions) => Promise<boole
 
 export function ConfirmProvider({ children }: { children: ReactNode }) {
   const [pending, setPending] = useState<Pending | null>(null);
-  const cancelRef = useRef<HTMLButtonElement>(null);
+  const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const bodyId = useId();
 
@@ -45,39 +45,36 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    if (!pending) return;
-    cancelRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      pending.resolve(false);
-      setPending(null);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const node = ref.current;
+    if (!node) return;
+    if (pending && !node.open) node.showModal();
+    if (!pending && node.open) node.close();
   }, [pending]);
 
   return (
     <ConfirmContext.Provider value={confirm}>
       {children}
-      {pending ? (
-        <div
-          className="confirm-scrim"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) settle(false);
-          }}
-        >
-          <div
-            className={`confirm-card${pending.previewSrc ? " has-preview" : ""}`}
-            role="alertdialog"
-            aria-modal="true"
-            aria-labelledby={titleId}
-            aria-describedby={bodyId}
-          >
+      <dialog
+        ref={ref}
+        className="confirm-dialog"
+        role="alertdialog"
+        aria-labelledby={titleId}
+        aria-describedby={bodyId}
+        onCancel={(event) => {
+          event.preventDefault();
+          settle(false);
+        }}
+        onMouseDown={(event) => {
+          if (event.target === ref.current) settle(false);
+        }}
+      >
+        {pending ? (
+          <div className={`confirm-card${pending.previewSrc ? " has-preview" : ""}`}>
             <div className="confirm-copy">
               <h2 id={titleId}>{pending.title}</h2>
               <p id={bodyId}>{pending.body}</p>
               <div className="confirm-actions">
-                <button type="button" ref={cancelRef} onClick={() => settle(false)}>
+                <button type="button" onClick={() => settle(false)}>
                   {pending.cancelLabel ?? "CANCEL"}
                 </button>
                 <button
@@ -92,15 +89,12 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             {pending.previewSrc ? (
               <div className="confirm-preview">
                 <p className="confirm-preview-label">{pending.previewLabel ?? "PDF"}</p>
-                <iframe
-                  title={pending.previewLabel ?? "PDF preview"}
-                  src={pending.previewSrc}
-                />
+                <iframe title={pending.previewLabel ?? "PDF preview"} src={pending.previewSrc} />
               </div>
             ) : null}
           </div>
-        </div>
-      ) : null}
+        ) : null}
+      </dialog>
     </ConfirmContext.Provider>
   );
 }

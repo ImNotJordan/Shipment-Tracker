@@ -18,7 +18,10 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html:
-              'try{var t=localStorage.getItem("live-board-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}',
+              'try{var k="live-board-theme",t=localStorage.getItem(k);if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;' +
+              // A framed preview is its own document. The storage event is how
+              // one same-origin document hears another change the theme.
+              'addEventListener("storage",function(e){if(e.key===k&&(e.newValue==="light"||e.newValue==="dark"))document.documentElement.dataset.theme=e.newValue})}catch(e){}',
           }}
         />
       </head>

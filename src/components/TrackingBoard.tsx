@@ -1,5 +1,7 @@
 "use client";
 
+import { brandVars } from "@/lib/brand";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { animate } from "animejs";
 import { Filter } from "lucide-react";
@@ -52,14 +54,22 @@ export function TrackingBoard({
   initial,
   mapsKey,
   user,
+  embedded,
 }: {
   initial: PublicBoard;
   mapsKey?: string;
   user?: SessionUser;
+  /** Rendered inside Admin's preview pane, which supplies the chrome. */
+  embedded?: boolean;
 }) {
   return (
     <ConfirmProvider>
-      <TrackingBoardInner initial={initial} mapsKey={mapsKey} user={user} />
+      <TrackingBoardInner
+        initial={initial}
+        mapsKey={mapsKey}
+        user={user}
+        embedded={embedded}
+      />
     </ConfirmProvider>
   );
 }
@@ -68,10 +78,12 @@ function TrackingBoardInner({
   initial,
   mapsKey,
   user,
+  embedded,
 }: {
   initial: PublicBoard;
   mapsKey?: string;
   user?: SessionUser;
+  embedded?: boolean;
 }) {
   const router = useRouter();
   const confirm = useConfirm();
@@ -197,63 +209,61 @@ function TrackingBoardInner({
 
   return (
     <main
-      className={`board${preview ? " is-viewing" : ""}`}
-      style={{
-        ["--amber" as string]: board.company.accent || "#e3b341",
-        ["--ink" as string]: board.company.background || "#10181a",
-        ["--ink-2" as string]: board.company.background || "#0a0c0f",
-      }}
+      className={`board${preview ? " is-viewing" : ""}${embedded ? " is-embedded" : ""}`}
+      style={brandVars(board.company)}
     >
+      {embedded ? null : (
       <header className="ident" data-region="ident-bar">
-        <div className="ident-left">
-          {board.company.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={board.company.logoUrl} alt="" className="board-logo" />
+          <div className="ident-left">
+            {board.company.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={board.company.logoUrl} alt="" className="board-logo" />
+            ) : null}
+            <h1 className="wordmark" data-region="wordmark">
+              {board.company.name.toUpperCase()}
+            </h1>
+            <span className="ident-pipe" aria-hidden>
+              |
+            </span>
+            <p className="live-board-label" data-region="live-board-label">
+              {preview ? "VIEWING AS CLIENT" : "LIVE BOARD"}
+            </p>
+          </div>
+          <div className="ident-right">
+            <ThemeToggle />
+            <p className="last-fetch" data-region="last-fetch">
+              LAST FETCH {lastFetch ? formatWhen(lastFetch) : clock}
+              <span className="pip" aria-hidden />
+            </p>
+            {preview && user ? (
+              <nav className="ops-nav" aria-label="Preview">
+                <span className="ops-who">
+                  {user.email}
+                  <em>{user.role}</em>
+                </span>
+                <button type="button" className="board-signout" onClick={() => void closePreview()}>
+                  Close preview
+                </button>
+              </nav>
+            ) : user ? (
+              <button
+                  type="button"
+                  className="board-signout"
+                  onClick={() => void signOut()}
+                  disabled={signingOut}
+                  aria-busy={signingOut}
+                >
+                  {signingOut ? "SIGNING OUT" : "Sign out"}
+                </button>
+            ) : null}
+          </div>
+          {signingOut ? (
+            <span className="sr-only" role="status">
+              Signing out
+            </span>
           ) : null}
-          <h1 className="wordmark" data-region="wordmark">
-            {board.company.name.toUpperCase()}
-          </h1>
-          <span className="ident-pipe" aria-hidden>
-            |
-          </span>
-          <p className="live-board-label" data-region="live-board-label">
-            {preview ? "VIEWING AS CLIENT" : "LIVE BOARD"}
-          </p>
-        </div>
-        <div className="ident-right">
-          <ThemeToggle />
-          <p className="last-fetch" data-region="last-fetch">
-            LAST FETCH {lastFetch ? formatWhen(lastFetch) : clock}
-            <span className="pip" aria-hidden />
-          </p>
-          {preview && user ? (
-            <nav className="ops-nav" aria-label="Preview">
-              <span className="ops-who">
-                {user.email}
-                <em>{user.role}</em>
-              </span>
-              <button type="button" className="board-signout" onClick={() => void closePreview()}>
-                Close preview
-              </button>
-            </nav>
-          ) : user ? (
-            <button
-                type="button"
-                className="board-signout"
-                onClick={() => void signOut()}
-                disabled={signingOut}
-                aria-busy={signingOut}
-              >
-                {signingOut ? "SIGNING OUT" : "Sign out"}
-              </button>
-          ) : null}
-        </div>
-        {signingOut ? (
-          <span className="sr-only" role="status">
-            Signing out
-          </span>
-        ) : null}
-      </header>
+        </header>
+      )}
 
       <section className="shipments" data-region="shipments-list">
         <div className="shipments-head" data-region="shipments-head">

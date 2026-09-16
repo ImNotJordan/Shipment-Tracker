@@ -13,6 +13,7 @@ export async function PATCH(
       name?: string;
       accent?: string;
       background?: string;
+      logoUrl?: string | null;
       notifyEnabled?: boolean;
       notifyCc?: string | string[];
     } | null;
@@ -22,6 +23,7 @@ export async function PATCH(
         name: body?.name,
         accent: body?.accent,
         background: body?.background,
+        logoUrl: body?.logoUrl,
         notifyEnabled: body?.notifyEnabled,
         notifyCc: body?.notifyCc !== undefined
           ? Array.isArray(body.notifyCc)

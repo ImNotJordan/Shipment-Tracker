@@ -8,16 +8,19 @@ export function ActionProgress({
   label,
   value,
   overlay,
+  inset,
 }: {
   active: boolean;
   label: string;
   value?: number;
   overlay?: boolean;
+  /** Cover the nearest positioned panel rather than the whole viewport. */
+  inset?: boolean;
 }) {
   if (overlay) {
     return (
       <div
-        className="gate-veil"
+        className={inset ? "gate-veil is-inset" : "gate-veil"}
         data-active={active ? "true" : "false"}
         // Set inline on purpose: the build strips backdrop-filter from the
         // stylesheet and emits only the -webkit- alias, which does not take.

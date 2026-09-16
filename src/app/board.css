@@ -16,7 +16,77 @@
   display: grid;
   grid-template-columns: minmax(240px, 22%) minmax(0, 1fr) minmax(280px, 24%);
   grid-template-rows: 64px minmax(0, 1fr);
-  background: var(--ink);
+  gap: 12px;
+  padding: 0 12px 12px;
+}
+
+/* The company background is a scheme, not a flood: it washes the head of the
+   page and tints the panels, while the ground stays night. */
+.board,
+.ops {
+  --amber: var(--brand-accent);
+  background:
+    radial-gradient(
+        120% 70% at 50% -10%,
+        color-mix(in oklab, var(--brand) var(--tint-glow), transparent),
+        transparent 62%
+      )
+      no-repeat,
+    var(--ink-2);
+}
+
+/* Two corner washes and a lit top edge, so a card reads as a surface with
+   light on it rather than a flat fill. Both washes come from the company's own
+   colours, so the board picks up its palette instead of a house accent. */
+.shipments,
+.map-panel,
+.detail,
+.ops-dock,
+.ops-stage,
+.ops-detail,
+.ops-previews {
+  border: 1px solid var(--seam);
+  border-radius: var(--r-card);
+  background:
+    radial-gradient(
+        128% 96% at 2% 0%,
+        color-mix(in srgb, var(--brand-accent) var(--glint-accent), transparent),
+        transparent 52%
+      )
+      no-repeat,
+    radial-gradient(
+        120% 88% at 100% 4%,
+        color-mix(in srgb, var(--brand) var(--glint-brand), transparent),
+        transparent 58%
+      )
+      no-repeat,
+    color-mix(in oklab, var(--brand) var(--tint-panel), var(--panel));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ivory) var(--glint-edge), transparent);
+  overflow: hidden;
+  animation: panel-rise 420ms var(--ease) both;
+}
+
+.map-panel { animation-delay: 60ms; }
+.detail,
+.ops-detail { animation-delay: 120ms; }
+
+@keyframes panel-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Floating panels carry their own edges, so the chrome above them does not
+   need a rule to sit on. */
+.board > .ident,
+.ops > .ident {
+  border-bottom: 0;
+  padding: 0 8px;
 }
 
 .ident {
@@ -293,7 +363,6 @@ select {
 .shipments {
   display: grid;
   grid-template-rows: auto 1fr auto;
-  border-right: 1px solid var(--seam);
 }
 
 .shipments-head {
@@ -312,7 +381,7 @@ select {
 .shipment-rows {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 8px;
   overflow: auto;
 }
 
@@ -320,29 +389,37 @@ select {
   display: grid;
   position: relative;
   width: 100%;
-  gap: 2px;
-  padding: 10px 16px 10px 22px;
+  gap: 3px;
+  padding: 12px 16px 12px 24px;
   background: transparent;
   color: inherit;
-  border: 0;
-  border-top: 1px solid var(--seam);
+  border: 1px solid transparent;
+  border-radius: var(--r-panel);
   text-align: left;
 }
 
 .ship-row:hover,
 .ship-row:focus-visible {
-  background: #141c1e;
+  background: color-mix(in oklab, var(--brand) var(--tint-hover), var(--ink-2));
 }
 
 .ship-row.is-active {
-  background: #161f22;
+  background:
+    linear-gradient(
+        96deg,
+        color-mix(in srgb, var(--brand-accent) var(--glint-accent), transparent),
+        transparent 46%
+      )
+      no-repeat,
+    color-mix(in oklab, var(--brand) var(--tint-active), var(--ink-2));
+  border-color: var(--seam);
 }
 
 .ship-row.is-active::before {
   content: "";
   position: absolute;
-  left: 8px;
-  top: 16px;
+  left: 10px;
+  top: 18px;
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -416,8 +493,9 @@ select {
 
 .map-key {
   min-width: 28px;
-  height: 22px;
-  padding: 0 8px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
   background: transparent;
   color: var(--ivory);
   border: 1px solid var(--seam);
@@ -443,8 +521,9 @@ select {
   z-index: 2;
   top: 14px;
   left: 16px;
-  padding: 4px 8px;
-  background: #10181a;
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
+  background: color-mix(in oklab, var(--brand) var(--tint-chrome), var(--panel));
 }
 
 .map-stage {
@@ -491,7 +570,7 @@ select {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 2px solid #10181a;
+  border: 2px solid var(--panel);
   box-shadow: 0 0 0 1px var(--seam);
 }
 
@@ -552,7 +631,6 @@ select {
 .detail {
   display: grid;
   grid-template-rows: 1fr 1fr;
-  border-left: 1px solid var(--seam);
   min-height: 0;
 }
 
@@ -856,14 +934,25 @@ textarea:disabled,
   transition: opacity 220ms ease, visibility 0s linear 220ms;
 }
 
+.gate-veil.is-inset {
+  position: absolute;
+  z-index: 4;
+  background: color-mix(in oklab, var(--panel) 88%, transparent);
+}
+
 .gate-veil[data-active="true"] {
   opacity: 1;
   visibility: visible;
   transition: opacity 220ms ease, visibility 0s;
 }
 
+:root[data-theme="light"] .board,
+:root[data-theme="light"] .ops {
+  --amber: color-mix(in oklab, var(--brand-accent) 72%, #2a1a02);
+}
+
 :root[data-theme="light"] .gate-hero,
-:root[data-theme="light"] .gate-veil {
+:root[data-theme="light"] .gate-veil:not(.is-inset) {
   --ivory: #eff0f0;
   --ivory-dim: #c0c1c1;
   --seam: #373e3d;
@@ -1038,7 +1127,15 @@ textarea:disabled,
 .ops {
   height: 100dvh;
   grid-template-columns: minmax(260px, 24%) minmax(0, 1fr) minmax(280px, 26%);
-  grid-template-rows: 64px minmax(0, 1fr);
+  grid-template-rows: 64px auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 0 12px 12px;
+}
+
+/* Admin drops the command dock: creating a board is a dialog, and inviting a
+   user sits in the detail column. Tracker still docks its attach form. */
+.ops-admin {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 34%);
 }
 
 .ops > .ident {
@@ -1055,15 +1152,18 @@ textarea:disabled,
 .ops-dock {
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  height: 100%;
-  border-right: 1px solid var(--seam);
+}
+
+.ops-dock .flash {
+  margin: 0;
+  border-left: 0;
+  border-right: 0;
 }
 
 .ops-stage {
+  position: relative;
   display: grid;
   grid-template-rows: auto 1fr;
-  border-right: 1px solid var(--seam);
 }
 
 .ops-detail {
@@ -1071,6 +1171,12 @@ textarea:disabled,
   flex-direction: column;
   padding: 0;
   overflow: auto;
+}
+
+.ops-detail .facts,
+.ops-detail .ops-form,
+.ops-previews {
+  background: transparent;
 }
 
 .ops-detail .history,
@@ -1115,11 +1221,6 @@ textarea:disabled,
   color: var(--ivory);
 }
 
-.ops-dock .flash {
-  margin: 0;
-  border-left: 0;
-  border-right: 0;
-}
 
 .gate-main {
   display: grid;
@@ -1667,6 +1768,34 @@ a.primary {
   padding-right: 60px;
 }
 
+/* One field per number: grouped on screen, raw digits underneath. */
+.ops-field-label {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--ivory-dim);
+}
+
+.ops-numbers {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.ops-numbers input {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.ops-numbers .ops-meta {
+  margin: 2px 0 0;
+  line-height: 1.5;
+}
+
 .ops-form textarea { min-height: 140px; resize: vertical; }
 .ops-form textarea.ops-cc { min-height: 72px; }
 
@@ -1674,18 +1803,21 @@ a.primary {
   background: var(--ivory);
   color: var(--ink);
   border: 1px solid var(--ivory);
-  padding: 10px 16px;
+  border-radius: var(--r-ctl);
+  padding: 11px 16px;
   font-weight: 700;
   letter-spacing: 0.08em;
 }
 
 .primary:hover { filter: brightness(1.05); }
+.primary:active:not(:disabled) { transform: translateY(1px); }
 .primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .danger {
   background: transparent;
   color: var(--danger);
   border: 1px solid transparent;
+  border-radius: var(--r-ctl);
   padding: 8px 12px;
 }
 
@@ -1821,37 +1953,70 @@ a.primary {
 .ops-rows {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 8px;
   overflow: auto;
+}
+
+/* The row and its tools are one entry, so the card is drawn on the <li> and
+   the button inside it stays transparent. */
+.ops-rows > li {
+  border: 1px solid transparent;
+  border-radius: var(--r-panel);
+  margin-bottom: 6px;
+  transition:
+    background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease);
+}
+
+.ops-rows > li:hover {
+  background: color-mix(in oklab, var(--brand) var(--tint-hover), var(--ink-2));
+}
+
+.ops-rows > li:has(.ops-row.is-active) {
+  background:
+    linear-gradient(
+        96deg,
+        color-mix(in srgb, var(--brand-accent) var(--glint-accent), transparent),
+        transparent 46%
+      )
+      no-repeat,
+    color-mix(in oklab, var(--brand) var(--tint-active), var(--ink-2));
+  border-color: var(--seam);
 }
 
 .ops-row {
   display: grid;
   position: relative;
   width: 100%;
-  gap: 2px;
-  padding: 10px 16px 10px 22px;
+  gap: 3px;
+  padding: 12px 16px 12px 24px;
+  border: 1px solid transparent;
+  border-radius: var(--r-panel);
   background: transparent;
   color: inherit;
-  border: 0;
-  border-top: 1px solid var(--seam);
   text-align: left;
 }
 
-.ops-row:hover,
-.ops-row:focus-visible {
-  background: #141c1e;
+.ops-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
 }
 
-.ops-row.is-active {
-  background: #161f22;
+.ops-row > .ship-status {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.ops-row:focus-visible {
+  background: color-mix(in oklab, var(--brand) var(--tint-hover), var(--ink-2));
 }
 
 .ops-row.is-active::before {
   content: "";
   position: absolute;
-  left: 8px;
-  top: 16px;
+  left: 10px;
+  top: 18px;
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -1867,9 +2032,8 @@ a.primary {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px 12px 22px;
-  border-top: 0;
-  background: #161f22;
+  margin: 0;
+  padding: 0 14px 12px 22px;
 }
 
 .ops-row-tools input,
@@ -1907,21 +2071,45 @@ button.ops-open {
   margin-left: 0;
 }
 
-.confirm-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  display: grid;
-  place-items: center;
-  padding: 24px;
+.confirm-dialog {
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 48px);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ivory);
+  overflow: visible;
+}
+
+.ops-dialog[open],
+.confirm-dialog[open] {
+  animation: dialog-rise 220ms var(--ease) both;
+}
+
+@keyframes dialog-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.confirm-dialog::backdrop,
+.ops-dialog::backdrop {
   background: rgba(10, 12, 15, 0.72);
 }
 
 .confirm-card {
-  width: min(420px, 100%);
+  width: min(420px, calc(100vw - 48px));
   border: 1px solid var(--seam);
+  border-radius: var(--r-card);
   background: var(--ink);
   padding: 24px;
+  overflow: hidden;
 }
 
 .confirm-card.has-preview {
@@ -2027,8 +2215,9 @@ button.ops-open {
 
 .ops-key {
   min-width: 28px;
-  height: 22px;
-  padding: 0 8px;
+  min-height: 32px;
+  padding: 8px 16px;
+  border-radius: var(--r-pill);
   background: transparent;
   color: var(--ivory);
   border: 1px solid var(--seam);
@@ -2049,6 +2238,56 @@ button.ops-open {
   margin-top: 16px;
 }
 
+.ops-pick {
+  display: grid;
+  gap: 8px;
+}
+
+/* Three partners for whatever the other picker holds — no more, so the eye
+   can actually choose between them. */
+.ops-suggest {
+  display: flex;
+  gap: 6px;
+}
+
+.ops-suggest button {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--seam);
+  border-radius: 8px;
+  transition:
+    border-color var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
+}
+
+.ops-suggest button:hover {
+  border-color: var(--ivory);
+  transform: translateY(-1px);
+}
+
+.ops-suggest button.is-on {
+  border-color: var(--ivory);
+  box-shadow: inset 0 0 0 1px var(--panel);
+}
+
+.ops-brand-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.ops-dirty {
+  padding: 4px 10px;
+  border: 1px solid var(--danger);
+  border-radius: var(--r-pill);
+  color: var(--danger);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
 .ops-brand label {
   display: grid;
   gap: 8px;
@@ -2066,21 +2305,43 @@ button.ops-open {
   padding: 4px;
 }
 
-.ops-file input {
-  width: auto;
+.ops-file input[type="file"] {
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: var(--r-ctl);
+  background: transparent;
+  color: var(--ivory-dim);
+  font-size: 11px;
+}
+
+.ops-file input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  padding: 7px 14px;
+  border: 1px solid var(--seam);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--ivory);
+  font: inherit;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: border-color var(--fast) var(--ease);
+}
+
+.ops-file input[type="file"]::file-selector-button:hover {
+  border-color: var(--ivory);
 }
 
 .ops-logo {
-  height: 32px;
+  height: 40px;
   width: auto;
   max-width: 120px;
+  padding: 4px 8px;
+  border: 1px solid var(--seam);
+  border-radius: var(--r-ctl);
   object-fit: contain;
 }
 
 .ops-notify .busy-control .ops-key {
-  height: auto;
-  min-height: 22px;
-  padding: 8px 12px;
   justify-self: start;
 }
 
@@ -2170,6 +2431,403 @@ button.ops-open {
   border-radius: 10px;
 }
 
+/* Station switcher, centred in the ident so neither ident edge moves. */
+.ident-nav {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--r-pill);
+  background: color-mix(in oklab, var(--brand) var(--tint-chrome), var(--ink-2));
+  border: 1px solid var(--seam);
+}
+
+.ident-nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-pill);
+  color: var(--ivory-dim);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.ident-nav button:hover { color: var(--ivory); }
+
+.ident-nav button.is-on {
+  background:
+    linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--brand-accent) var(--glint-accent), transparent),
+        transparent 72%
+      )
+      no-repeat,
+    color-mix(in oklab, var(--brand) var(--tint-chrome), var(--panel));
+  color: var(--ivory);
+}
+
+/* Operator bar: station tools on the left, who you are on the right. */
+.ops-bar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px;
+}
+
+.ops-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+
+.ops-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(420px, 100%);
+  padding: 0 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--seam);
+  background: color-mix(in oklab, var(--brand) var(--tint-chrome), var(--panel));
+  color: var(--ivory-dim);
+  transition: border-color var(--fast) var(--ease);
+}
+
+.ops-search input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ivory);
+}
+
+.ops-search input:focus { outline: none; }
+
+.ops-search:focus-within { border-color: var(--ivory); }
+
+.ops-bar .ops-who {
+  margin-right: 0;
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--seam);
+  background: color-mix(in oklab, var(--brand) var(--tint-chrome), var(--panel));
+  white-space: nowrap;
+}
+
+.ops-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: var(--ivory-dim);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.ops-add:hover { color: var(--ivory); }
+
+.ops-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Previews pane spans both columns — nothing is selected behind it. */
+.ops-previews {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.ops-preview-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--seam);
+}
+
+.ops-preview-company select {
+  min-height: 32px;
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  background: color-mix(in oklab, var(--brand) var(--tint-chrome), var(--panel));
+}
+
+.ops-preview-picks {
+  display: flex;
+  gap: 16px;
+}
+
+.ops-preview-stage {
+  position: relative;
+  min-height: 0;
+}
+
+.ops-preview-stage iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  opacity: 0;
+  transition: opacity 320ms var(--ease);
+}
+
+.ops-preview-stage iframe[data-ready="true"] {
+  opacity: 1;
+}
+
+/* No plate behind the mark — it floats on the pane, so the theme reads
+   through and the fold into the loader is the only thing that moves. */
+.ops-preview-mark {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  transition: opacity 320ms var(--ease);
+}
+
+/* The mark is chrome, lit for a dark ground. With the plate gone its pale
+   stops sit within a few percent of a day-mode panel, so the strokes get an
+   edge back. This is artwork, not a panel — the no-shadow rule still holds
+   for surfaces. */
+:root[data-theme="light"] .ops-preview-mark .gate-mark {
+  filter:
+    drop-shadow(0 1px 1px rgba(16, 24, 26, 0.42))
+    drop-shadow(0 8px 20px rgba(16, 24, 26, 0.22));
+}
+
+.ops-preview-mark .gate-mark-well,
+.ops-preview-mark .empty-copy {
+  transition:
+    opacity 300ms var(--ease),
+    transform 380ms var(--ease);
+}
+
+/* Picking a console folds the mark down into the spot the sign-in loader
+   rises in, so one gesture carries into the other. */
+.ops-preview-mark[data-state="loading"] .gate-mark-well {
+  opacity: 0;
+  transform: scale(0.52);
+}
+
+.ops-preview-mark[data-state="loading"] .empty-copy {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.ops-preview-mark[data-state="done"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ops-preview-mark .gate-mark-well {
+  width: min(300px, 40vh);
+}
+
+.ops-preview-mark .empty-copy {
+  color: var(--ivory-dim);
+}
+
+/* An embedded console is a body only: the preview pane carries the chrome.
+   Inside the frame 100dvh is the pane, so the console still fills its host
+   rather than collapsing to content height. */
+.ops.is-embedded,
+.board.is-embedded {
+  grid-template-rows: minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px;
+  background: none;
+}
+
+.ops.is-embedded .ops-previews,
+.ops.is-embedded .ops-dock,
+.ops.is-embedded .ops-stage,
+.ops.is-embedded .ops-detail {
+  animation: none;
+}
+
+.ops-preview-picks .ops-key {
+  padding: 12px 32px;
+}
+
+/* Create company: native <dialog>, so the scrim and Escape come free. */
+.ops-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(86vh, 760px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--seam);
+  border-radius: var(--r-card);
+  background: var(--ink);
+  color: var(--ivory);
+  overflow: auto;
+}
+
+.ops-create { padding: 24px; }
+
+.ops-create-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.ops-create-head h2 { margin-bottom: 8px; }
+
+.ops-dialog-close {
+  background: transparent;
+  border: 0;
+  color: var(--ivory-dim);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
+
+.ops-dialog-close:hover { color: var(--ivory); }
+
+.ops-create-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 128px;
+  gap: 16px;
+  align-items: start;
+}
+
+.ops-create-top > div:first-child > label:last-child { margin-bottom: 0; }
+
+.ops-logo-well {
+  display: grid;
+  place-items: center;
+  height: 96px;
+  border: 1px solid var(--seam);
+  border-radius: var(--r-panel);
+  color: var(--ivory-dim);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+}
+
+.ops-logo-well img {
+  max-height: 72px;
+  max-width: 108px;
+  object-fit: contain;
+}
+
+.ops-create .ops-meta {
+  display: block;
+  margin: 18px 0 10px;
+}
+
+.ops-swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.ops-swatches legend + label { grid-column: 1; }
+
+.ops-swatches legend {
+  grid-column: 1 / -1;
+  padding: 0;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--ivory-dim);
+}
+
+.ops-swatches label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--seam);
+  border-radius: var(--r-ctl);
+  position: relative;
+  color: var(--ivory-dim);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition:
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease);
+}
+
+.ops-swatches label.is-on {
+  border-color: var(--ivory);
+  color: var(--ivory);
+}
+
+.ops-swatches input[type="radio"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.ops-swatches label:focus-within {
+  outline: 1px solid var(--amber);
+  outline-offset: 2px;
+}
+
+.ops-swatches label > span {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--seam);
+  border-radius: 7px;
+}
+
+.ops-swatch-custom input[type="color"] {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--seam);
+  border-radius: 7px;
+  background: transparent;
+}
+
+.ops-create-go {
+  width: 100%;
+  justify-content: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 @media (max-width: 980px) {
   .last-fetch {
     font-size: 11px;
@@ -2191,12 +2849,20 @@ button.ops-open {
   .map-panel { height: 55vh; }
   .ops {
     grid-template-columns: 1fr;
-    grid-template-rows: 64px auto minmax(42vh, 1fr) auto;
+    grid-template-rows: 64px auto auto minmax(42vh, 1fr) auto;
     height: auto;
     min-height: 100dvh;
   }
+  .ops-admin { grid-template-columns: 1fr; }
   .ops-dock,
   .ops-stage { border-right: 0; border-bottom: 1px solid var(--seam); height: auto; }
+  .ident-nav {
+    position: static;
+    transform: none;
+  }
+  .ident-nav button { padding: 8px 10px; letter-spacing: 0.08em; }
+  .ops-bar { flex-wrap: wrap; }
+  .ops-create-top { grid-template-columns: 1fr; }
   .ops-detail { height: auto; }
   .confirm-card.has-preview {
     grid-template-columns: 1fr;

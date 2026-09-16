@@ -4,11 +4,16 @@ import { listAudits, listShipments, visibleCompanies } from "@/lib/store";
 import { TrackerConsole } from "@/components/TrackerConsole";
 import { homePath } from "@/lib/access";
 
-export default async function TrackerPage() {
+export default async function TrackerPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ embed?: string }>;
+}) {
   const context = await readSessionContext();
   if (!context) redirect("/login?next=/tracker");
   if (context.user.mustChangePassword) redirect("/login");
   if (context.user.role === "client") redirect(homePath(context.user));
+  const { embed } = await searchParams;
   const companies = await visibleCompanies(context.user, context.idToken);
   const selected =
     companies.find((company) => company.id === context.user.companyId) ??
@@ -29,6 +34,7 @@ export default async function TrackerPage() {
       initialAudits={audits}
       initialCompanyId={companyId}
       lockCompany={context.user.role === "tracker"}
+      embedded={embed === "1"}
     />
   );
 }

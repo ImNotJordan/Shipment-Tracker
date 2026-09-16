@@ -22,6 +22,32 @@
      one-line change here. */
   --font: "Inter", system-ui, -apple-system, sans-serif;
   --font-data: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Shape and motion. The gate set this language first; the boards now speak
+     it too, so a radius or an easing changes in one place. */
+  --r-card: 20px;
+  --r-panel: 14px;
+  --r-ctl: 10px;
+  --r-pill: 999px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --fast: 160ms;
+
+  /* Company colour. --brand-accent becomes the live instrument, --brand tints
+     the scheme. A board overrides both; nothing else does.
+     The tint scale is how hard --brand is mixed in — day mode pulls it right
+     down, because a dark brand at night strength turns a light panel to mud. */
+  --brand: #10181a;
+  --brand-accent: #e3b341;
+  --tint-panel: 12%;
+  --tint-chrome: 16%;
+  --tint-hover: 22%;
+  --tint-active: 28%;
+  --tint-glow: 62%;
+  /* Corner washes inside a panel. Kept well under the fill tints: a glint is
+     light falling on the card, not a second background. */
+  --glint-brand: 13%;
+  --glint-accent: 8%;
+  --glint-edge: 3%;
   color-scheme: dark;
 }
 
@@ -37,6 +63,15 @@
   --amber: #8a5d0c;
   --live: #146c39;
   --danger: #a63324;
+  --brand: #dfe4e4;
+  --tint-panel: 4%;
+  --tint-chrome: 6%;
+  --tint-hover: 9%;
+  --tint-active: 13%;
+  --tint-glow: 20%;
+  --glint-brand: 7%;
+  --glint-accent: 5%;
+  --glint-edge: 45%;
   color-scheme: light;
 }
 
@@ -93,7 +128,19 @@ select {
   background: var(--ink-2);
   color: var(--ivory);
   border: 1px solid var(--seam);
-  border-radius: 0;
+  border-radius: var(--r-ctl);
+  transition:
+    border-color var(--fast) var(--ease),
+    background var(--fast) var(--ease);
+}
+
+button {
+  transition:
+    background var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    color var(--fast) var(--ease),
+    opacity var(--fast) var(--ease),
+    transform var(--fast) var(--ease);
 }
 
 button {
