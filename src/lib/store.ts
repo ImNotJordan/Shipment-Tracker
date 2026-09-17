@@ -183,7 +183,7 @@ async function seedNow() {
     admin.localId,
     {
       email: admin.email,
-      name: kind === "platform" ? "Jordan Amilasan" : "Platform Admin",
+      name: kind === "platform" ? "Guilmar Quimba" : "Platform Admin",
       role: "admin",
       companyId: null,
       companySlug: null,

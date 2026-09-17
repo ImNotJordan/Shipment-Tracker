@@ -7,13 +7,16 @@ import type { PublicBoard } from "@/lib/types";
 
 export default async function TrackPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ embed?: string }>;
 }) {
   const context = await readSessionContext();
   if (!context) redirect("/login");
   if (context.user.mustChangePassword) redirect("/login");
   const { slug } = await params;
+  const { embed } = await searchParams;
   const company = await companyForSlug(context.user, slug, context.idToken);
   if (!company) notFound();
 
@@ -59,6 +62,7 @@ export default async function TrackPage({
       initial={board}
       mapsKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
       user={context.user}
+      embedded={embed === "1"}
     />
   );
 }

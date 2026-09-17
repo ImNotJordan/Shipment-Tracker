@@ -44,7 +44,10 @@ typography:
     lineHeight: 1.4
     letterSpacing: "0.16em"
 rounded:
-  none: "0px"
+  card: "20px"
+  panel: "14px"
+  control: "10px"
+  pill: "999px"
   pip: "50%"
 spacing:
   xs: "8px"
@@ -57,66 +60,66 @@ components:
   button-primary:
     backgroundColor: "{colors.ivory}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.control}"
     padding: "10px 16px"
     typography: "{typography.title}"
   button-primary-hover:
     backgroundColor: "{colors.ivory}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.control}"
     padding: "10px 16px"
   button-danger:
     backgroundColor: "transparent"
     textColor: "{colors.danger}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.control}"
     padding: "8px 12px"
   button-map-key:
     backgroundColor: "transparent"
     textColor: "{colors.ivory}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.pill}"
     height: "22px"
     padding: "0 8px"
   input-console:
     backgroundColor: "{colors.ink-2}"
     textColor: "{colors.ivory}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.control}"
     padding: "10px 12px"
   card-ops:
     backgroundColor: "{colors.ink}"
     textColor: "{colors.ivory}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.card}"
     padding: "18px"
   gate-card:
     backgroundColor: "{colors.ink}"
     textColor: "{colors.ivory}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.card}"
     padding: "28px"
     width: "min(420px, 100%)"
   ship-row:
     backgroundColor: "transparent"
     textColor: "{colors.ivory}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.panel}"
     padding: "10px 16px 10px 22px"
   ship-row-hover:
     backgroundColor: "{colors.row-hover}"
     textColor: "{colors.ivory}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.panel}"
     padding: "10px 16px 10px 22px"
   ship-row-active:
     backgroundColor: "{colors.row-active}"
     textColor: "{colors.ivory}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.panel}"
     padding: "10px 16px 10px 22px"
   ident-bar:
     backgroundColor: "{colors.ink}"
     textColor: "{colors.ivory}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.control}"
     height: "64px"
     padding: "0 18px"
   flash:
     backgroundColor: "{colors.ink}"
     textColor: "{colors.ivory}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.control}"
     padding: "10px 12px"
 ---
 
@@ -132,7 +135,7 @@ The shipped ground is cooler and darker than the original challenger brief. Grap
 
 **Key Characteristics:**
 - Full-viewport tiled console (list / map / facts / history), not stacked cards
-- Graphite ground, ivory type, 1px seams, square corners
+- Graphite ground, ivory type, 1px seams, rounded panels floating on a 12px gutter
 - Amber only for live/in-transit/selected/focus
 - Iosevka throughout; uppercase tracking labels with wide letter-spacing
 - Honest empty and error copy — never a fabricated delivery
@@ -185,7 +188,8 @@ A near-black teal graphite field, cool ivory type, and a single syntax accent us
 
 ## Layout
 
-The client board is a two-row, three-column instrument that fills `100dvh`. Row one is the 64px ident. Row two is `minmax(240px, 22%)` shipments | fluid map | `minmax(280px, 24%)` detail. Detail splits 1fr / 1fr into facts over history. Selection changes data inside those tiles; it does not change the grid.
+The client board is a two-row, three-column instrument that fills `100dvh`,
+with a 12px gutter between panels and a 12px shell inset. Row one is the 64px ident. Row two is `minmax(240px, 22%)` shipments | fluid map | `minmax(280px, 24%)` detail. Detail splits 1fr / 1fr into facts over history. Selection changes data inside those tiles; it does not change the grid.
 
 Horizontal rhythm is 16px inside panels, 18px in the ident, 10px on dense rows and tools. Admin and Tracker are the same night instrument as the client board: 64px ident, then a persistent three-tile grid (command dock | list | detail). Login/index/not-found still center a 1px-seamed card (`min(420px, 100%)`) in the remaining viewport.
 
@@ -196,16 +200,37 @@ Below 980px the board stacks: ident, shipment list (max 42vh), map at 55vh, then
 
 ## Elevation & Depth
 
-Surfaces are flat. Depth is a 1px oxide seam and a half-step tonal well (void inputs, active rows). There is no drop-shadow vocabulary, no blur, and no lifted card.
+Depth is a 1px oxide seam, a half-step tonal well (void inputs, active rows),
+and a glint — two soft corner washes plus a lit top edge that make a panel read
+as a surface with light on it. There is still no drop-shadow vocabulary, no
+blur, and no lifted card: the glint sits inside the panel, it does not lift it
+off the page.
 
 Focus is a 1px amber outline with 2px offset. The last-fetch pip is a 7px signal-green disc; the selected shipment is a 6px amber disc inset on the row. History nodes are 11px circles with a 1px dim ring, filling amber only for the current event. The map course is a 3px amber geodesic with graphite-stroked circular markers.
 
 ### Named Rules
-**The Seam Rule.** Partition with 1px `{colors.seam}`. Do not lift panels with shadows, glass, or gradients.
+**The Seam Rule.** Partition with 1px `{colors.seam}`. Panels are separated by
+the shell gutter and their own edge — never by a shadow, glass, or a gradient.
+
+**The Scheme, Not Flood Rule.** A company's `background` tints: it washes the
+head of the page and mixes into panel fills at 12–28%. It never becomes the
+ground. The console stays a night instrument whatever colour is chosen.
+
+**The Glint Rule.** Every panel takes two corner washes — `accent` from the top
+left, `background` from the top right — and a 1px lit top edge. Both come from
+the company's own colours, so a board picks up its palette rather than a house
+accent, and a company that leaves its background near-black simply gets less
+glint. A glint is ambient light at well under a quarter opacity; it never
+carries meaning. Live state is still `accent` at full strength and nothing
+else, so the Live Amber Rule holds.
 
 ## Shapes
 
-Everything structural is square (`0px` radius): board, ident, forms, inputs, tables, buttons, flashes, map keys. Roundness is reserved for status geometry — pips, history nodes, and map course markers. The IN TRANSIT legend is an 18×2px amber bar, not a pill.
+Panels are rounded cards that float on the ground with a 12px gutter: 20px on
+boards, dialogs and the gate card, 14px on rows and wells, 10px on buttons and
+inputs, and a full pill on the station switcher, search, the who-chip and the
+map keys. Status geometry stays circular — pips, history nodes, and map course
+markers. The IN TRANSIT legend is an 18×2px amber bar, not a pill.
 
 ## Components
 
@@ -260,5 +285,6 @@ Google Map, night-styled, default UI off, background graphite. Course polyline a
 - **Don't** introduce a marketing hero, testimonial, or carrier-branded banner on any surface.
 - **Don't** invent FedEx statuses, ETAs, routes, or delivered packages when the API has not returned them.
 - **Don't** fill primary actions in amber or green — those colors are status, not buttons.
-- **Don't** add drop shadows, large radius, or a second type family.
+- **Don't** add drop shadows or a second type family. Depth is still a seam and
+  a tonal step, never a shadow.
 - **Don't** restyle Admin / Tracker / login into a light dashboard; they inherit the Night Console.

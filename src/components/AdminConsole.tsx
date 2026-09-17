@@ -1,13 +1,21 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Building2, Users } from "lucide-react";
+import { Building2, Eye, Plus, Search, Users } from "lucide-react";
 import { OpsChrome } from "./OpsChrome";
+import { CreateCompanyDialog, type NewCompany } from "./CreateCompanyDialog";
+import {
+  FALLBACK,
+  matchingAccents,
+  matchingBackgrounds,
+  paletteFromUrl,
+} from "@/lib/logo-palette";
+import { GateMark } from "./GateMark";
+import { ActionProgress, BusyControl } from "./ActionProgress";
 import { ConfirmProvider, openViewAsTab, useConfirm } from "./ConfirmDialog";
 import { pulsePanel, staggerRows } from "@/lib/ops-motion";
 import { parseEmailList } from "@/lib/emails";
 import { normalizePhone, phoneProblem } from "@/lib/phones";
-import { BusyControl } from "./ActionProgress";
 import { OpsToast, useOpsToast } from "./OpsToast";
 import type { CompanyRecord, Role, SessionUser, UserRecord } from "@/lib/types";
 
@@ -55,6 +63,14 @@ function pdfUrlFromBase64(base64: string) {
   return URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
 }
 
+type Tab = "companies" | "users" | "previews";
+
+const TABS = [
+  ["companies", "COMPANIES", Building2],
+  ["users", "USERS", Users],
+  ["previews", "PREVIEWS", Eye],
+] as const;
+
 export function AdminConsole(props: {
   user: SessionUser;
   initialCompanies: CompanyRecord[];
@@ -76,11 +92,17 @@ function AdminWorkbench({
   initialCompanies: CompanyRecord[];
   initialUsers: UserRecord[];
 }) {
-  const [tab, setTab] = useState<"companies" | "users">("companies");
+  const [tab, setTab] = useState<Tab>("companies");
+  const [query, setQuery] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [preview, setPreview] = useState<{
+    kind: "tracker" | "client";
+    companyId?: string;
+  } | null>(null);
+  const [previewReady, setPreviewReady] = useState(false);
   const [companies, setCompanies] = useState(initialCompanies);
   const [users, setUsers] = useState(initialUsers);
   const [selectedId, setSelectedId] = useState<string | null>(initialCompanies[0]?.id ?? null);
-  const [name, setName] = useState("");
   const [invite, setInvite] = useState({
     email: "",
     name: "",
@@ -89,14 +111,12 @@ function AdminWorkbench({
     cc: "",
     phone: "",
   });
-  const [branding, setBranding] = useState<Record<string, { accent: string; background: string }>>(
-    Object.fromEntries(
-      initialCompanies.map((company) => [
-        company.id,
-        { accent: company.accent, background: company.background },
-      ]),
-    ),
-  );
+  // Only companies with an unsaved edit appear here. Anything absent reads
+  // straight from the server, so the pickers cannot show a colour the board
+  // does not actually have.
+  const [branding, setBranding] = useState<
+    Record<string, { accent: string; background: string }>
+  >({});
   const [notify, setNotify] = useState<Record<string, { enabled: boolean; cc: string }>>(
     Object.fromEntries(
       initialCompanies.map((company) => [
@@ -109,7 +129,7 @@ function AdminWorkbench({
   const [smsConfigured, setSmsConfigured] = useState(false);
   const [edits, setEdits] = useState<Record<string, UserEdit>>({});
   const [busy, setBusy] = useState<{
-    key: "create" | "notify" | "invite" | "save" | "sms" | "delete";
+    key: "create" | "notify" | "invite" | "save" | "sms" | "delete" | "delete-company";
     id?: string;
     label: string;
     value?: number;
@@ -159,37 +179,106 @@ function AdminWorkbench({
     return () => cancelAnimationFrame(id);
   }, [tab]);
 
+  function discardBrand(company: CompanyRecord) {
+    setBranding((current) => {
+      const next = { ...current };
+      delete next[company.id];
+      return next;
+    });
+  }
+
+  function setBrand(
+    company: CompanyRecord,
+    patch: Partial<{ accent: string; background: string }>,
+  ) {
+    setBranding((current) => ({
+      ...current,
+      [company.id]: {
+        accent: current[company.id]?.accent ?? company.accent,
+        background: current[company.id]?.background ?? company.background,
+        ...patch,
+      },
+    }));
+  }
+
+  async function onSuggestColors(company: CompanyRecord) {
+    const palette = company.logoUrl ? await paletteFromUrl(company.logoUrl) : FALLBACK;
+    setBranding((current) => ({
+      ...current,
+      [company.id]: {
+        accent: palette.accents[0],
+        background: palette.backgrounds[0],
+      },
+    }));
+    toast.show(
+      "ok",
+      company.logoUrl
+        ? "Suggested colours read from the logo. SAVE COLORS to keep them."
+        : "No logo on this board, so the defaults are suggested. SAVE COLORS to keep them.",
+    );
+  }
+
   function selectCompany(id: string) {
     setSelectedId(id);
     pulsePanel(detailRef.current);
   }
 
-  function switchTab(next: "companies" | "users") {
+  function switchTab(next: Tab) {
     setTab(next);
+    setQuery("");
+    closePreview();
     pulsePanel(detailRef.current);
   }
 
-  async function onCreate(event: FormEvent) {
-    event.preventDefault();
-    const okCreate = await confirm({
-      title: "CREATE COMPANY",
-      body: `Create ${name.trim() || "this company"} and its live board?`,
-      confirmLabel: "CREATE",
-    });
-    if (!okCreate) return;
+  function openPreview(kind: "tracker" | "client") {
+    if (kind === "client" && !selected) return;
+    setPreviewReady(false);
+    setPreview(kind === "tracker" ? { kind } : { kind, companyId: selected!.id });
+  }
+
+  function previewCompanyId(id: string) {
+    setPreviewReady(false);
+    setPreview({ kind: "client", companyId: id });
+  }
+
+  function closePreview() {
+    setPreview(null);
+    setPreviewReady(false);
+  }
+
+  async function onCreate(draft: NewCompany) {
     setBusy({ key: "create", label: "CREATING COMPANY" });
     try {
       const res = await fetch("/api/companies", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name: draft.name }),
       });
       const json = await res.json();
       if (!res.ok) {
         toast.show("bad", json.error ?? "Could not create company.");
         return;
       }
-      setName("");
+      // The board exists either way; colours and logo are follow-ups that can
+      // fail on their own without losing the tenant.
+      await fetch(`/api/companies/${json.company.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ accent: draft.accent, background: draft.background }),
+      });
+      if (draft.logo) {
+        const data = new FormData();
+        data.set("logo", draft.logo);
+        const logoRes = await fetch(`/api/companies/${json.company.id}/logo`, {
+          method: "POST",
+          body: data,
+        });
+        if (!logoRes.ok) {
+          const logoJson = await logoRes.json().catch(() => null);
+          toast.show("bad", logoJson?.error ?? "Board created, but the logo did not upload.");
+        }
+      }
+      setCreating(false);
       toast.show("ok", `${json.company.name} is ready at /track/${json.company.slug}`);
       setSelectedId(json.company.id);
       await load();
@@ -197,6 +286,28 @@ function AdminWorkbench({
     } finally {
       setBusy(null);
     }
+  }
+
+  async function onRemoveLogo(companyId: string) {
+    const okRemove = await confirm({
+      title: "REMOVE LOGO",
+      body: "Clear this board's logo? The board falls back to its wordmark.",
+      confirmLabel: "REMOVE",
+      danger: true,
+    });
+    if (!okRemove) return;
+    const res = await fetch(`/api/companies/${companyId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ logoUrl: null }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      toast.show("bad", json.error ?? "Could not remove logo.");
+      return;
+    }
+    toast.show("ok", "Logo removed.");
+    await load();
   }
 
   async function onDeleteCompany(id: string) {
@@ -208,7 +319,7 @@ function AdminWorkbench({
       danger: true,
     });
     if (!okDelete) return;
-    setBusy({ key: "delete", id, label: "DELETING COMPANY" });
+    setBusy({ key: "delete-company", id, label: "DELETING COMPANY" });
     try {
       const res = await fetch(`/api/companies/${id}`, { method: "DELETE" });
       const json = await res.json();
@@ -295,26 +406,41 @@ function AdminWorkbench({
       }),
     });
     const json = await res.json();
-    if (!res.ok) toast.show("bad", json.error ?? "Could not save board colors.");
-    else toast.show("ok", `Updated ${company.name} board colors.`);
+    if (!res.ok) {
+      toast.show("bad", json.error ?? "Could not save board colors.");
+    } else {
+      // The server now holds these, so the override has nothing left to say.
+      discardBrand(company);
+      toast.show("ok", `Updated ${company.name} board colors.`);
+    }
     await load();
   }
 
   async function onLogo(companyId: string, file: File | undefined) {
     if (!file) return;
-    const okLogo = await confirm({
-      title: "UPDATE LOGO",
-      body: `Replace this company's board logo with ${file.name}?`,
-      confirmLabel: "UPLOAD",
-    });
-    if (!okLogo) return;
-    const data = new FormData();
-    data.set("logo", file);
-    const res = await fetch(`/api/companies/${companyId}/logo`, { method: "POST", body: data });
-    const json = await res.json();
-    if (!res.ok) toast.show("bad", json.error ?? "Could not upload logo.");
-    else toast.show("ok", "Logo updated.");
-    await load();
+    // The pick is shown before anything is sent, so a wrong file is caught by
+    // eye here rather than on the live board afterwards.
+    const preview = URL.createObjectURL(file);
+    try {
+      const okLogo = await confirm({
+        title: "UPDATE LOGO",
+        body: `Replace this company's board logo with ${file.name}?`,
+        confirmLabel: "UPLOAD",
+        previewSrc: preview,
+        previewLabel: "NEW LOGO",
+        previewKind: "image",
+      });
+      if (!okLogo) return;
+      const data = new FormData();
+      data.set("logo", file);
+      const res = await fetch(`/api/companies/${companyId}/logo`, { method: "POST", body: data });
+      const json = await res.json();
+      if (!res.ok) toast.show("bad", json.error ?? "Could not upload logo.");
+      else toast.show("ok", "Logo updated.");
+      await load();
+    } finally {
+      URL.revokeObjectURL(preview);
+    }
   }
 
   async function onInvite(event: FormEvent) {
@@ -513,10 +639,50 @@ function AdminWorkbench({
     }
   }
 
+  const previewCompany =
+    preview?.kind === "client"
+      ? (companies.find((item) => item.id === preview.companyId) ?? null)
+      : null;
+  // The previewed page, without ?embed — what a new tab should open.
+  const previewHref = !preview
+    ? null
+    : preview.kind === "tracker"
+      ? "/tracker"
+      : previewCompany
+        ? `/track/${previewCompany.slug}`
+        : null;
+  const previewLabel =
+    preview?.kind === "client"
+      ? `CLIENT — ${previewCompany?.name.toUpperCase() ?? "—"}`
+      : "TRACKER";
+
+  const needle = query.trim().toLowerCase();
+  const shownCompanies = needle
+    ? companies.filter((company) =>
+        `${company.name} ${company.slug}`.toLowerCase().includes(needle),
+      )
+    : companies;
+  // Whoever is signed in reads their own account first, so the row whose
+  // controls are all disabled is never hunted for. Array.sort is stable, so
+  // everyone else keeps the email order the server already put them in.
+  const shownUsers = (needle
+    ? users.filter((row) =>
+        `${row.name ?? ""} ${row.email} ${row.role}`.toLowerCase().includes(needle),
+      )
+    : users
+  )
+    .slice()
+    .sort((a, b) => Number(b.id === user.id) - Number(a.id === user.id));
   const selected = companies.find((item) => item.id === selectedId) ?? null;
   const colors = selected
     ? (branding[selected.id] ?? { accent: selected.accent, background: selected.background })
     : null;
+  const brandDirty = Boolean(
+    selected &&
+      branding[selected.id] &&
+      (branding[selected.id].accent !== selected.accent ||
+        branding[selected.id].background !== selected.background),
+  );
   const mail = selected
     ? (notify[selected.id] ?? {
         enabled: selected.notifyEnabled !== false,
@@ -546,156 +712,158 @@ function AdminWorkbench({
   return (
     <>
       <OpsToast toast={toast.toast} onDismiss={toast.dismiss} />
-      <OpsChrome user={user} station="ADMIN" clientSlug={selected?.slug}>
-      <section className="ops-dock">
-        <div className="ops-tools">
+      <OpsChrome
+        user={user}
+        station="ADMIN"
+        clientSlug={selected?.slug}
+        brand={colors}
+        nav={TABS.map(([key, label, Icon]) => (
           <button
+            key={key}
             type="button"
-            className={tab === "companies" ? "is-on" : undefined}
-            onClick={() => switchTab("companies")}
+            className={tab === key ? "is-on" : undefined}
+            aria-current={tab === key ? "page" : undefined}
+            onClick={() => switchTab(key)}
           >
-            <Building2 size={12} aria-hidden />
-            COMPANIES
+            <Icon size={12} aria-hidden />
+            {label}
           </button>
-          <span>/</span>
-          <button
-            type="button"
-            className={tab === "users" ? "is-on" : undefined}
-            onClick={() => switchTab("users")}
-          >
-            <Users size={12} aria-hidden />
-            USERS
-          </button>
-        </div>
-        {tab === "companies" ? (
-          <form className="ops-form" onSubmit={onCreate}>
-            <h2>Create company</h2>
-            <p>Each company is a sealed tenant. Clients only see their own live board.</p>
-            <label>
-              COMPANY NAME
+        ))}
+        bar={
+          tab === "previews" ? null : (
+            <label className="ops-search">
+              <Search size={12} aria-hidden />
+              <span className="sr-only">
+                {tab === "companies" ? "Search companies" : "Search users"}
+              </span>
               <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Ronin"
-                required
-                disabled={busy?.key === "create"}
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={tab === "companies" ? "Search company" : "Search users"}
               />
             </label>
-            <BusyControl
-              active={busy?.key === "create"}
-              label={busy?.key === "create" ? busy.label : "Creating company"}
-            >
-              <button className="primary" type="submit" disabled={busy?.key === "create"}>
-                {busy?.key === "create" ? busy.label : "CREATE COMPANY"}
-              </button>
-            </BusyControl>
-          </form>
-        ) : (
-          <form className="ops-form" onSubmit={onInvite}>
-            <h2>Invite user</h2>
-            <p>
-              {emailConfigured
-                ? "Creates the account, emails the credentials PDF (with optional CC), and downloads a copy here."
-                : "Creates the account and downloads a credentials PDF. Add RESEND_API_KEY to email invites."}
-            </p>
-            <label>
-              NAME
-              <input
-                value={invite.name}
-                onChange={(event) => setInvite({ ...invite, name: event.target.value })}
-                disabled={busy?.key === "invite"}
-              />
-            </label>
-            <label>
-              EMAIL
-              <input
-                type="email"
-                value={invite.email}
-                onChange={(event) => setInvite({ ...invite, email: event.target.value })}
-                required
-                disabled={busy?.key === "invite"}
-              />
-            </label>
-            <label>
-              ROLE
-              <select
-                value={invite.role}
-                onChange={(event) => setInvite({ ...invite, role: event.target.value as Role })}
-                disabled={busy?.key === "invite"}
-              >
-                <option value="client">Client — live board only</option>
-                <option value="tracker">Tracker — tracking numbers + audit log</option>
-                <option value="admin">Admin — companies, users, branding</option>
-              </select>
-            </label>
-            {invite.role === "client" ? (
-              <label>
-                PHONE
-                <input
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  value={invite.phone}
-                  onChange={(event) => setInvite({ ...invite, phone: event.target.value })}
-                  placeholder="+63917xxxxxxx"
-                  disabled={busy?.key === "invite"}
-                />
-              </label>
-            ) : null}
-            {invite.role === "admin" ? null : (
-              <label>
-                COMPANY
-                <select
-                  value={invite.companyId}
-                  onChange={(event) => setInvite({ ...invite, companyId: event.target.value })}
-                  required
-                  disabled={busy?.key === "invite"}
+          )
+        }
+      >
+      {tab === "previews" ? (
+        <section className="ops-previews">
+          <div className="ops-preview-head">
+            {preview && previewHref ? (
+              <>
+                <span className="ops-meta">PREVIEWING {previewLabel}</span>
+                {preview.kind === "client" ? (
+                  <label className="ops-preview-company">
+                    <span className="sr-only">Company to preview</span>
+                    <select
+                      value={previewCompany?.id ?? ""}
+                      onChange={(event) => previewCompanyId(event.target.value)}
+                    >
+                      {companies.map((company) => (
+                        <option key={company.id} value={company.id}>
+                          {company.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+                <button
+                  type="button"
+                  className="ops-key"
+                  onClick={() =>
+                    void (async () => {
+                      const okTab = await confirm({
+                        title: "OPEN IN NEW TAB",
+                        body: `Open ${previewHref} in its own tab, with its full navigation? The preview here stays open.`,
+                        confirmLabel: "OPEN TAB",
+                      });
+                      if (okTab) openViewAsTab(previewHref);
+                    })()
+                  }
                 >
-                  {companies.map((company) => (
-                    <option key={company.id} value={company.id}>
-                      {company.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  OPEN IN NEW TAB
+                </button>
+                <button type="button" className="ops-key" onClick={closePreview}>
+                  CLOSE PREVIEW
+                </button>
+              </>
+            ) : (
+              <div className="ops-preview-picks">
+                <button
+                  type="button"
+                  className="ops-key"
+                  onClick={() => openPreview("tracker")}
+                >
+                  TRACKER
+                </button>
+                <button
+                  type="button"
+                  className="ops-key"
+                  disabled={!selected}
+                  onClick={() => openPreview("client")}
+                >
+                  CLIENT
+                </button>
+              </div>
             )}
-            <label>
-              CC EMAILS
-              <textarea
-                className="ops-cc"
-                value={invite.cc}
-                disabled={busy?.key === "invite"}
-                onChange={(event) => setInvite({ ...invite, cc: event.target.value })}
-                placeholder={"ops@company.com\nwarehouse@company.com"}
-              />
-            </label>
-            <BusyControl
-              active={busy?.key === "invite"}
-              label={busy?.key === "invite" ? busy.label : "Inviting user"}
-              value={busy?.key === "invite" ? busy.value : undefined}
+          </div>
+          <div className="ops-preview-stage">
+            {/* The mark holds the empty space, then folds away as the sign-in
+                loader takes the same spot — one gesture, not two overlays. */}
+            <div
+              className="ops-preview-mark"
+              data-state={!preview ? "idle" : previewReady ? "done" : "loading"}
             >
-              <button className="primary" type="submit" disabled={busy?.key === "invite"}>
-                {busy?.key === "invite" ? busy.label : "INVITE AND EMAIL PDF"}
-              </button>
-            </BusyControl>
-          </form>
-        )}
-      </section>
-
+              <div className="gate-mark-well">
+                <GateMark />
+              </div>
+              <p className="empty-copy">
+                {selected
+                  ? `Pick a console. Client opens ${selected.name}.`
+                  : "Pick a console. Select a company on Companies to preview its client board."}
+              </p>
+            </div>
+            <ActionProgress
+              overlay
+              inset
+              active={Boolean(preview) && !previewReady}
+              label={`OPENING ${previewLabel}`}
+            />
+            {preview && previewHref ? (
+              <iframe
+                key={previewHref}
+                src={`${previewHref}?embed=1`}
+                title={`Preview of ${previewLabel}`}
+                data-ready={previewReady}
+                onLoad={() => setPreviewReady(true)}
+              />
+            ) : null}
+          </div>
+        </section>
+      ) : (
+        <>
       <section className="ops-stage">
         <div className="shipments-head">
           {tab === "companies" ? <Building2 size={12} aria-hidden /> : <Users size={12} aria-hidden />}
           <span>{tab === "companies" ? "BOARDS" : "DIRECTORY"}</span>
-          <b>{tab === "companies" ? companies.length : users.length}</b>
+          <b>{tab === "companies" ? shownCompanies.length : shownUsers.length}</b>
+          {tab === "companies" ? (
+            <button type="button" className="ops-add" onClick={() => setCreating(true)}>
+              Add company
+              <Plus size={12} aria-hidden />
+            </button>
+          ) : null}
         </div>
         {tab === "companies" ? (
           <ul ref={listRef} className="console-scroll ops-rows">
-            {companies.length === 0 ? (
-              <li className="empty-row">No companies yet. Create one in the dock.</li>
+            {shownCompanies.length === 0 ? (
+              <li className="empty-row">
+                {needle ? `No board matches “${query.trim()}”.` : "No companies yet. Add one above."}
+              </li>
             ) : (
-              companies.map((company) => {
+              shownCompanies.map((company) => {
                 const active = company.id === selected?.id;
-                const deleting = busy?.key === "delete" && busy.id === company.id;
+                const deleting = busy?.key === "delete-company" && busy.id === company.id;
                 return (
                   <li key={company.id}>
                     <button
@@ -705,8 +873,14 @@ function AdminWorkbench({
                     >
                       <span className="ship-num">{company.name}</span>
                       <span className="ship-lane">/track/{company.slug}</span>
-                      <span className="ship-status">{company.logoUrl ? "LOGO" : "NO LOGO"}</span>
+                      {company.logoUrl ? null : <span className="ship-status">NO LOGO</span>}
                     </button>
+                    {/* Sits outside the button so it centres on the whole card
+                        rather than the name strip alone. */}
+                    {company.logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={company.logoUrl} alt="" className="ops-row-logo" />
+                    ) : null}
                     <div className="ops-row-tools">
                       {company.slug === "ronin" ? (
                         <span className="ops-meta">SEED BOARD — CANNOT DELETE</span>
@@ -728,10 +902,12 @@ function AdminWorkbench({
           </ul>
         ) : (
           <ul ref={listRef} className="console-scroll ops-rows">
-            {users.length === 0 ? (
-              <li className="empty-row">No users yet. Invite from the dock.</li>
+            {shownUsers.length === 0 ? (
+              <li className="empty-row">
+                {needle ? `No user matches “${query.trim()}”.` : "No users yet. Invite one on the right."}
+              </li>
             ) : (
-              users.map((row) => {
+              shownUsers.map((row) => {
                 const edit = draftFor(row, edits);
                 const dirty = draftDirty(row, edit);
                 const locked = row.id === user.id || Boolean(busy);
@@ -884,8 +1060,8 @@ function AdminWorkbench({
                       Deletes this tenant, its shipments, and its audit log. Assigned users are revoked.
                     </p>
                     <BusyControl
-                      active={busy?.key === "delete" && busy.id === selected.id}
-                      label={busy?.key === "delete" ? busy.label : "Deleting company"}
+                      active={busy?.key === "delete-company" && busy.id === selected.id}
+                      label={busy?.key === "delete-company" ? busy.label : "Deleting company"}
                     >
                       <button
                         className="danger"
@@ -893,7 +1069,7 @@ function AdminWorkbench({
                         disabled={Boolean(busy)}
                         onClick={() => onDeleteCompany(selected.id)}
                       >
-                        {busy?.key === "delete" && busy.id === selected.id
+                        {busy?.key === "delete-company" && busy.id === selected.id
                           ? busy.label
                           : "Delete company"}
                       </button>
@@ -902,46 +1078,102 @@ function AdminWorkbench({
                 )}
               </div>
               <div className="ops-brand">
-                <label>
-                  ACCENT
-                  <input
-                    type="color"
-                    value={colors.accent}
-                    onChange={(event) =>
-                      setBranding((current) => ({
-                        ...current,
-                        [selected.id]: { ...colors, accent: event.target.value },
-                      }))
-                    }
-                  />
-                </label>
-                <label>
-                  BACKGROUND
-                  <input
-                    type="color"
-                    value={colors.background}
-                    onChange={(event) =>
-                      setBranding((current) => ({
-                        ...current,
-                        [selected.id]: { ...colors, background: event.target.value },
-                      }))
-                    }
-                  />
-                </label>
-                <button className="ops-key" type="button" onClick={() => onSaveBrand(selected)}>
-                  SAVE COLORS
-                </button>
+                <div className="ops-pick">
+                  <label>
+                    ACCENT
+                    <input
+                      type="color"
+                      value={colors.accent}
+                      onChange={(event) => setBrand(selected, { accent: event.target.value })}
+                    />
+                  </label>
+                  <div className="ops-suggest" role="group" aria-label="Accents matching this background">
+                    {matchingAccents(colors.background).map((hex) => (
+                      <button
+                        key={hex}
+                        type="button"
+                        className={hex === colors.accent ? "is-on" : undefined}
+                        style={{ background: hex }}
+                        title={hex.toUpperCase()}
+                        aria-label={`Use accent ${hex.toUpperCase()}`}
+                        onClick={() => setBrand(selected, { accent: hex })}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="ops-pick">
+                  <label>
+                    BACKGROUND
+                    <input
+                      type="color"
+                      value={colors.background}
+                      onChange={(event) => setBrand(selected, { background: event.target.value })}
+                    />
+                  </label>
+                  <div className="ops-suggest" role="group" aria-label="Backgrounds matching this accent">
+                    {matchingBackgrounds(colors.accent).map((hex) => (
+                      <button
+                        key={hex}
+                        type="button"
+                        className={hex === colors.background ? "is-on" : undefined}
+                        style={{ background: hex }}
+                        title={hex.toUpperCase()}
+                        aria-label={`Use background ${hex.toUpperCase()}`}
+                        onClick={() => setBrand(selected, { background: hex })}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="ops-brand-actions">
+                  <button
+                    className="ops-key"
+                    type="button"
+                    onClick={() => void onSuggestColors(selected)}
+                  >
+                    SUGGESTED
+                  </button>
+                  <button className="ops-key" type="button" onClick={() => onSaveBrand(selected)}>
+                    SAVE COLORS
+                  </button>
+                  {brandDirty ? (
+                    <>
+                      <span className="ops-dirty">UNSAVED</span>
+                      <button
+                        className="danger"
+                        type="button"
+                        onClick={() => discardBrand(selected)}
+                      >
+                        Discard
+                      </button>
+                    </>
+                  ) : null}
+                </div>
                 <label className="ops-file">
                   LOGO
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                    onChange={(event) => onLogo(selected.id, event.target.files?.[0])}
+                    onChange={(event) => {
+                      void onLogo(selected.id, event.target.files?.[0]);
+                      // Cleared so cancelling the preview and picking the same
+                      // file again still counts as a change.
+                      event.target.value = "";
+                    }}
                   />
                 </label>
                 {selected.logoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={selected.logoUrl} alt="" className="ops-logo" />
+                  <div className="ops-logo-row">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={selected.logoUrl} alt="" className="ops-logo" />
+                    <button
+                      className="danger"
+                      type="button"
+                      disabled={Boolean(busy)}
+                      onClick={() => onRemoveLogo(selected.id)}
+                    >
+                      Remove logo
+                    </button>
+                  </div>
                 ) : (
                   <p className="empty-copy">No logo on this board yet.</p>
                 )}
@@ -1033,31 +1265,124 @@ function AdminWorkbench({
           ) : (
             <p className="empty-copy">Select a company to set colors and logo, or delete it from the board list.</p>
           )
-        ) : (
-          <section className="ops-pdf">
-            <h2 className="panel-title">CREDENTIALS PDF</h2>
-            {pdfPreview ? (
-              <iframe title={`Credentials for ${pdfPreview.email}`} src={pdfPreview.url} />
-            ) : (
-              <div className="facts">
-                <p className="empty-copy">
-                  Client sees only their live board. Tracker edits tracking numbers for one company.
-                  Admin manages every tenant.
-                </p>
-                <p className="empty-copy">
-                  After you invite someone, their credentials PDF opens here and beside the send
-                  confirm.
-                </p>
-                <p className="empty-copy">
-                  Directory edits stay on the row until you press SAVE. Role, company, and phone
-                  write together.
-                </p>
-              </div>
+          ) : tab === "users" ? (
+          <>
+          <form className="ops-form" onSubmit={onInvite}>
+            <h2>Invite user</h2>
+            <p>
+              {emailConfigured
+                ? "Creates the account, emails the credentials PDF (with optional CC), and downloads a copy here."
+                : "Creates the account and downloads a credentials PDF. Add RESEND_API_KEY to email invites."}
+            </p>
+            <label>
+              NAME
+              <input
+                value={invite.name}
+                onChange={(event) => setInvite({ ...invite, name: event.target.value })}
+                disabled={busy?.key === "invite"}
+              />
+            </label>
+            <label>
+              EMAIL
+              <input
+                type="email"
+                value={invite.email}
+                onChange={(event) => setInvite({ ...invite, email: event.target.value })}
+                required
+                disabled={busy?.key === "invite"}
+              />
+            </label>
+            <label>
+              ROLE
+              <select
+                value={invite.role}
+                onChange={(event) => setInvite({ ...invite, role: event.target.value as Role })}
+                disabled={busy?.key === "invite"}
+              >
+                <option value="client">Client — live board only</option>
+                <option value="tracker">Tracker — tracking numbers + audit log</option>
+                <option value="admin">Admin — companies, users, branding</option>
+              </select>
+            </label>
+            {invite.role === "client" ? (
+              <label>
+                PHONE
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  value={invite.phone}
+                  onChange={(event) => setInvite({ ...invite, phone: event.target.value })}
+                  placeholder="+63917xxxxxxx"
+                  disabled={busy?.key === "invite"}
+                />
+              </label>
+            ) : null}
+            {invite.role === "admin" ? null : (
+              <label>
+                COMPANY
+                <select
+                  value={invite.companyId}
+                  onChange={(event) => setInvite({ ...invite, companyId: event.target.value })}
+                  required
+                  disabled={busy?.key === "invite"}
+                >
+                  {companies.map((company) => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
             )}
-          </section>
-        )}
+            <label>
+              CC EMAILS
+              <textarea
+                className="ops-cc"
+                value={invite.cc}
+                disabled={busy?.key === "invite"}
+                onChange={(event) => setInvite({ ...invite, cc: event.target.value })}
+                placeholder={"ops@company.com\nwarehouse@company.com"}
+              />
+            </label>
+            <BusyControl
+              active={busy?.key === "invite"}
+              label={busy?.key === "invite" ? busy.label : "Inviting user"}
+              value={busy?.key === "invite" ? busy.value : undefined}
+            >
+              <button className="primary" type="submit" disabled={busy?.key === "invite"}>
+                {busy?.key === "invite" ? busy.label : "INVITE AND EMAIL PDF"}
+              </button>
+            </BusyControl>
+          </form>
+            {pdfPreview ? (
+              <section className="ops-pdf">
+                <h2 className="panel-title">CREDENTIALS PDF</h2>
+                <iframe title={`Credentials for ${pdfPreview.email}`} src={pdfPreview.url} />
+              </section>
+            ) : null}
+          </>
+        ) : null}
       </aside>
+        </>
+      )}
       </OpsChrome>
+      <CreateCompanyDialog
+        open={creating}
+        busy={busy?.key === "create"}
+        busyLabel={busy?.key === "create" ? busy.label : "CREATING COMPANY"}
+        onClose={() => setCreating(false)}
+        onSubmit={(draft) => void onCreate(draft)}
+      />
+      {/* The sign-in gate's loader, reused: adding or removing a board rebuilds
+          the whole console, so it owns the screen while it runs. The create
+          dialog carries its own copy, because a modal sits in the top layer
+          above anything a z-indexed veil out here can reach. */}
+      <ActionProgress
+        overlay
+        active={(busy?.key === "create" && !creating) || busy?.key === "delete-company"}
+        label={busy?.label ?? ""}
+      />
     </>
   );
 }

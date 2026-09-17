@@ -8,16 +8,29 @@ import type { SessionUser } from "@/lib/types";
 import { closeViewAsTab, openViewAsTab, useConfirm } from "./ConfirmDialog";
 import { ThemeToggle } from "./ThemeToggle";
 import { BrandMark } from "./BrandMark";
+import { brandVars } from "@/lib/brand";
 
 export function OpsChrome({
   user,
   station,
   clientSlug,
+  nav,
+  bar,
+  brand,
+  embedded,
   children,
 }: {
   user: SessionUser;
   station: "ADMIN" | "TRACKER";
   clientSlug?: string | null;
+  /** Station switcher, centred in the ident. */
+  nav?: ReactNode;
+  /** Station tools — search, filters — on the left of the operator bar. */
+  bar?: ReactNode;
+  /** Company whose colours theme this station. */
+  brand?: { accent?: string | null; background?: string | null } | null;
+  /** Rendered inside Admin's preview pane, which supplies the chrome. */
+  embedded?: boolean;
   children: ReactNode;
 }) {
   const router = useRouter();
@@ -84,97 +97,112 @@ export function OpsChrome({
   }
 
   return (
-    <main className={`ops ops-${station.toLowerCase()}${viewingAsTracker ? " is-viewing" : ""}`}>
+    <main
+      className={`ops ops-${station.toLowerCase()}${viewingAsTracker ? " is-viewing" : ""}${embedded ? " is-embedded" : ""}`}
+      style={brandVars(brand)}
+    >
+      {embedded ? null : (
+        <>
       <header className="ident" data-region="ident-bar">
-        <div className="ident-left">
-          <BrandMark />
-          <h1 className="wordmark">LIVE BOARD</h1>
-          <span className="ident-pipe" aria-hidden>
-            |
-          </span>
-          <p className="live-board-label">
-            {viewingAsTracker ? "VIEWING AS TRACKER" : station}
-          </p>
-        </div>
-        <div className="ident-right">
-          <ThemeToggle />
-          <p className="last-fetch">
-            {clock || "—"}
-            <span className="pip" aria-hidden />
-          </p>
-          <nav className="ops-nav" aria-label="Operator">
-            <span className="ops-who">
-              {user.email}
-              <em>{user.role}</em>
-            </span>
-            {user.role === "admin" ? (
-              onAdmin ? (
-                <Link href="/admin" aria-current="page">
-                  Admin
-                </Link>
-              ) : viewingAsTracker ? (
-                <button type="button" onClick={() => void closePreview()}>
-                  Close preview
-                </button>
-              ) : (
-                <Link href="/admin">Admin</Link>
-              )
+            <div className="ident-left">
+              <BrandMark />
+              <h1 className="wordmark">LIVE BOARD</h1>
+              <span className="ident-pipe" aria-hidden>
+                |
+              </span>
+              <p className="live-board-label">
+                {viewingAsTracker ? "VIEWING AS TRACKER" : station}
+              </p>
+            </div>
+            {nav ? (
+              <nav className="ident-nav" aria-label="Station">
+                {nav}
+              </nav>
             ) : null}
-            {user.role === "admin" ? (
-              onTracker ? (
-                <Link href="/tracker" aria-current="page">
+            <div className="ident-right">
+              <ThemeToggle />
+              <p className="last-fetch">
+                {clock || "—"}
+                <span className="pip" aria-hidden />
+              </p>
+            </div>
+            {signingOut ? (
+              <span className="sr-only" role="status">
+                Signing out
+              </span>
+            ) : null}
+          </header>
+          <div className="ops-bar">
+            <div className="ops-bar-left">{bar}</div>
+            <nav className="ops-nav" aria-label="Operator">
+              <span className="ops-who">
+                {user.email}
+                <em>{user.role}</em>
+              </span>
+              {user.role === "admin" ? (
+                onAdmin ? (
+                  <Link href="/admin" aria-current="page">
+                    Admin
+                  </Link>
+                ) : viewingAsTracker ? (
+                  <button type="button" onClick={() => void closePreview()}>
+                    Close preview
+                  </button>
+                ) : (
+                  <Link href="/admin">Admin</Link>
+                )
+              ) : null}
+              {user.role === "admin" && !nav ? (
+                onTracker ? (
+                  <Link href="/tracker" aria-current="page">
+                    Tracker
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void viewAs(
+                        "/tracker",
+                        "VIEW AS TRACKER",
+                        "Opens the tracker console in a new tab. Close preview there to return here.",
+                      )
+                    }
+                  >
+                    View as Tracker
+                  </button>
+                )
+              ) : user.role === "tracker" ? (
+                <Link href="/tracker" aria-current={onTracker ? "page" : undefined}>
                   Tracker
                 </Link>
-              ) : (
+              ) : null}
+              {clientHref && !nav ? (
                 <button
                   type="button"
                   onClick={() =>
                     void viewAs(
-                      "/tracker",
-                      "VIEW AS TRACKER",
-                      "Opens the tracker console in a new tab. Close preview there to return here.",
+                      clientHref,
+                      "VIEW AS CLIENT",
+                      "Opens this company's live board in a new tab, as a client would see it. Close preview there to return here.",
                     )
                   }
                 >
-                  View as Tracker
+                  View as Client
                 </button>
-              )
-            ) : user.role === "tracker" ? (
-              <Link href="/tracker" aria-current={onTracker ? "page" : undefined}>
-                Tracker
-              </Link>
-            ) : null}
-            {clientHref ? (
+              ) : null}
               <button
                 type="button"
-                onClick={() =>
-                  void viewAs(
-                    clientHref,
-                    "VIEW AS CLIENT",
-                    "Opens this company's live board in a new tab, as a client would see it. Close preview there to return here.",
-                  )
-                }
+                onClick={() => void logout()}
+                disabled={viewingAsTracker || signingOut}
+                aria-busy={signingOut}
               >
-                View as Client
+                <LogOut size={12} aria-hidden />
+                {signingOut ? "SIGNING OUT" : "Sign out"}
               </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => void logout()}
-              disabled={viewingAsTracker || signingOut}
-              aria-busy={signingOut}
-            >
-              <LogOut size={12} aria-hidden />
-              {signingOut ? "SIGNING OUT" : "Sign out"}
-            </button>
-          </nav>
-        </div>
-        {signingOut ? (
-          <span className="sr-only" role="status">
-            Signing out
-          </span>
-        ) : null}
-      </header>
+            </nav>
+          </div>
+        </>
+      )}
       {children}
     </main>
   );
