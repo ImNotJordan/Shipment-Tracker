@@ -23,6 +23,7 @@ import {
 } from "./types";
 import { isRole } from "./access";
 import { parseEmailList } from "./emails";
+import { parsePhoneList } from "./phones";
 
 let seedDone = false;
 let seedLock: Promise<void> | null = null;
@@ -48,6 +49,7 @@ function asCompany(id: string, data: Record<string, unknown>): CompanyRecord {
     logoUrl: (data.logoUrl as string | null) ?? null,
     notifyEnabled: data.notifyEnabled !== false,
     notifyCc: parseEmailList(data.notifyCc),
+    notifyCcPhones: parsePhoneList(data.notifyCcPhones).phones,
   };
 }
 
@@ -211,6 +213,7 @@ async function seedNow() {
       logoUrl: null,
       notifyEnabled: true,
       notifyCc: [],
+      notifyCcPhones: [],
     };
     await putDocument("companies", id, company, token);
     ronin = { id, data: company };
@@ -353,6 +356,7 @@ export async function createCompany(name: string, token: string) {
     logoUrl: null,
     notifyEnabled: true,
     notifyCc: [],
+    notifyCcPhones: [],
   };
   await putDocument("companies", company.id, { ...company }, token);
   return company;
@@ -361,7 +365,10 @@ export async function createCompany(name: string, token: string) {
 export async function updateCompany(
   id: string,
   patch: Partial<
-    Pick<CompanyRecord, "name" | "accent" | "background" | "logoUrl" | "notifyEnabled" | "notifyCc">
+    Pick<
+      CompanyRecord,
+      "name" | "accent" | "background" | "logoUrl" | "notifyEnabled" | "notifyCc" | "notifyCcPhones"
+    >
   >,
   token: string,
 ) {
@@ -377,6 +384,15 @@ export async function updateCompany(
   if (patch.logoUrl !== undefined) next.logoUrl = patch.logoUrl;
   if (patch.notifyEnabled !== undefined) next.notifyEnabled = patch.notifyEnabled;
   if (patch.notifyCc !== undefined) next.notifyCc = parseEmailList(patch.notifyCc);
+  if (patch.notifyCcPhones !== undefined) {
+    const parsed = parsePhoneList(patch.notifyCcPhones);
+    if (parsed.invalid.length) {
+      throw new Error(
+        `Invalid CC phone: ${parsed.invalid[0]}. Use a full number with country code, like +12095551212.`,
+      );
+    }
+    next.notifyCcPhones = parsed.phones;
+  }
   const fields: Record<string, unknown> = {};
   if (patch.name !== undefined) fields.name = next.name;
   if (patch.accent !== undefined) fields.accent = next.accent;
@@ -384,6 +400,7 @@ export async function updateCompany(
   if (patch.logoUrl !== undefined) fields.logoUrl = next.logoUrl;
   if (patch.notifyEnabled !== undefined) fields.notifyEnabled = next.notifyEnabled;
   if (patch.notifyCc !== undefined) fields.notifyCc = next.notifyCc;
+  if (patch.notifyCcPhones !== undefined) fields.notifyCcPhones = next.notifyCcPhones;
   if (Object.keys(fields).length) await patchDocument("companies", id, fields, token);
   return next;
 }

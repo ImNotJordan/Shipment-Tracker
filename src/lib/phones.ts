@@ -14,8 +14,36 @@ export function normalizePhone(raw: string | null | undefined) {
   return E164.test(candidate) ? candidate : null;
 }
 
+export function parsePhoneList(value: unknown): { phones: string[]; invalid: string[] } {
+  const raw = Array.isArray(value) ? value.join("\n") : String(value ?? "");
+  const tokens = raw
+    .split(/[\n,;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const phones: string[] = [];
+  const invalid: string[] = [];
+  const seen = new Set<string>();
+  for (const token of tokens) {
+    const phone = normalizePhone(token);
+    if (!phone) {
+      invalid.push(token);
+      continue;
+    }
+    if (seen.has(phone)) continue;
+    seen.add(phone);
+    phones.push(phone);
+  }
+  return { phones, invalid };
+}
+
 export function phoneProblem(raw: string) {
   if (!raw.trim()) return null;
   if (normalizePhone(raw)) return null;
-  return "Use an international number, like +63917xxxxxxx.";
+  return "Use a full number with country code, like +12095551212.";
+}
+
+export function phoneListProblem(raw: string) {
+  const { invalid } = parsePhoneList(raw);
+  if (!invalid.length) return null;
+  return `Invalid number: ${invalid[0]}. Use a full number with country code, like +12095551212.`;
 }

@@ -9,8 +9,8 @@ export async function POST(
   try {
     const { idToken } = await requireRole(["admin"]);
     const { id } = await context.params;
-    const phones = await sendTestClientSms(id, idToken);
-    return NextResponse.json({ ok: true, phones });
+    const result = await sendTestClientSms(id, idToken);
+    return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     const status = error instanceof Error && error.name === "UnauthorizedError" ? 403 : 400;
     return NextResponse.json(

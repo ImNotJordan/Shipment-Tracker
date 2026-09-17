@@ -24,6 +24,7 @@ export type CompanyRecord = {
   logoUrl: string | null;
   notifyEnabled: boolean;
   notifyCc: string[];
+  notifyCcPhones: string[];
 };
 
 export type ScanEvent = {

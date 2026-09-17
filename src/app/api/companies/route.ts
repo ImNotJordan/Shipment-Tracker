@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createCompany, visibleCompanies } from "@/lib/store";
 import { requireRole } from "@/lib/session";
-import { openPhoneConfigured, resendConfigured } from "@/lib/notify";
+import { openPhoneConfigured, openPhoneFrom, resendConfigured } from "@/lib/notify";
 
 export async function GET() {
   try {
@@ -10,6 +10,7 @@ export async function GET() {
       companies: await visibleCompanies(user, idToken),
       emailConfigured: resendConfigured(),
       smsConfigured: openPhoneConfigured(),
+      smsFrom: openPhoneFrom(),
     });
   } catch {
     return NextResponse.json({ error: "Sign in required." }, { status: 401 });

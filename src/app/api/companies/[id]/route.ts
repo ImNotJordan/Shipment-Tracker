@@ -16,6 +16,7 @@ export async function PATCH(
       logoUrl?: string | null;
       notifyEnabled?: boolean;
       notifyCc?: string | string[];
+      notifyCcPhones?: string | string[];
     } | null;
     const company = await updateCompany(
       id,
@@ -29,6 +30,11 @@ export async function PATCH(
           ? Array.isArray(body.notifyCc)
             ? body.notifyCc
             : String(body.notifyCc).split(/[\n,;]+/)
+          : undefined,
+        notifyCcPhones: body?.notifyCcPhones !== undefined
+          ? Array.isArray(body.notifyCcPhones)
+            ? body.notifyCcPhones
+            : String(body.notifyCcPhones).split(/[\n,;]+/)
           : undefined,
       },
       idToken,

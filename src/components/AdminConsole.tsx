@@ -15,9 +15,19 @@ import { ActionProgress, BusyControl } from "./ActionProgress";
 import { ConfirmProvider, openViewAsTab, useConfirm } from "./ConfirmDialog";
 import { pulsePanel, staggerRows } from "@/lib/ops-motion";
 import { parseEmailList } from "@/lib/emails";
-import { normalizePhone, phoneProblem } from "@/lib/phones";
+import { normalizePhone, parsePhoneList, phoneListProblem, phoneProblem } from "@/lib/phones";
 import { OpsToast, useOpsToast } from "./OpsToast";
 import type { CompanyRecord, Role, SessionUser, UserRecord } from "@/lib/types";
+
+type NotifyDraft = { enabled: boolean; cc: string; ccPhones: string };
+
+function notifyDraftFrom(company: CompanyRecord): NotifyDraft {
+  return {
+    enabled: company.notifyEnabled !== false,
+    cc: (company.notifyCc ?? []).join("\n"),
+    ccPhones: (company.notifyCcPhones ?? []).join("\n"),
+  };
+}
 
 type UserEdit = {
   role: Role;
@@ -117,16 +127,13 @@ function AdminWorkbench({
   const [branding, setBranding] = useState<
     Record<string, { accent: string; background: string }>
   >({});
-  const [notify, setNotify] = useState<Record<string, { enabled: boolean; cc: string }>>(
-    Object.fromEntries(
-      initialCompanies.map((company) => [
-        company.id,
-        { enabled: company.notifyEnabled !== false, cc: (company.notifyCc ?? []).join("\n") },
-      ]),
-    ),
+  const [notify, setNotify] = useState<Record<string, NotifyDraft>>(
+    Object.fromEntries(initialCompanies.map((company) => [company.id, notifyDraftFrom(company)])),
   );
   const [emailConfigured, setEmailConfigured] = useState(false);
   const [smsConfigured, setSmsConfigured] = useState(false);
+  const [smsFrom, setSmsFrom] = useState("");
+  const [notifyPhoneError, setNotifyPhoneError] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<string, UserEdit>>({});
   const [busy, setBusy] = useState<{
     key: "create" | "notify" | "invite" | "save" | "sms" | "delete" | "delete-company";
@@ -151,11 +158,13 @@ function AdminWorkbench({
     setUsers(userJson.users ?? []);
     setEmailConfigured(Boolean(companyJson.emailConfigured));
     setSmsConfigured(Boolean(companyJson.smsConfigured));
+    setSmsFrom(typeof companyJson.smsFrom === "string" ? companyJson.smsFrom : "");
+    setNotifyPhoneError(null);
     setNotify(
       Object.fromEntries(
         (companyJson.companies ?? []).map((company: CompanyRecord) => [
           company.id,
-          { enabled: company.notifyEnabled !== false, cc: (company.notifyCc ?? []).join("\n") },
+          notifyDraftFrom(company),
         ]),
       ),
     );
@@ -336,16 +345,24 @@ function AdminWorkbench({
   }
 
   async function onSaveNotify(company: CompanyRecord) {
-    const settings = notify[company.id] ?? { enabled: true, cc: "" };
+    const settings = notify[company.id] ?? notifyDraftFrom(company);
+    const phoneError = phoneListProblem(settings.ccPhones);
+    if (phoneError) {
+      setNotifyPhoneError(phoneError);
+      toast.show("bad", phoneError);
+      document.getElementById("notify-cc-phones")?.focus();
+      return;
+    }
+    const ccPhones = parsePhoneList(settings.ccPhones).phones;
     const okSave = await confirm({
-      title: "SAVE EMAIL UPDATES",
+      title: "SAVE UPDATES",
       body: settings.enabled
-        ? `Send FedEx tracking updates for ${company.name} to client accounts, with the CC list saved here?`
-        : `Stop sending FedEx tracking update emails for ${company.name}?`,
+        ? `Send FedEx tracking updates for ${company.name} to client accounts, CC emails, and CC phones saved here?`
+        : `Stop sending FedEx tracking updates for ${company.name}?`,
       confirmLabel: "SAVE",
     });
     if (!okSave) return;
-    setBusy({ key: "notify", label: "SAVING EMAIL UPDATES" });
+    setBusy({ key: "notify", label: "SAVING UPDATES" });
     try {
       const res = await fetch(`/api/companies/${company.id}`, {
         method: "PATCH",
@@ -353,11 +370,12 @@ function AdminWorkbench({
         body: JSON.stringify({
           notifyEnabled: settings.enabled,
           notifyCc: parseEmailList(settings.cc),
+          notifyCcPhones: ccPhones,
         }),
       });
       const json = await res.json();
-      if (!res.ok) toast.show("bad", json.error ?? "Could not save email updates.");
-      else toast.show("ok", `Saved client update emails for ${company.name}.`);
+      if (!res.ok) toast.show("bad", json.error ?? "Could not save updates.");
+      else toast.show("ok", `Saved client update emails and SMS for ${company.name}.`);
       await load();
     } finally {
       setBusy(null);
@@ -365,9 +383,25 @@ function AdminWorkbench({
   }
 
   async function onSendTestSms(company: CompanyRecord) {
+    const phones = [
+      ...new Set([
+        ...users
+          .filter(
+            (row) =>
+              row.role === "client" &&
+              row.companyId === company.id &&
+              !row.disabled &&
+              row.phone,
+          )
+          .map((row) => row.phone as string),
+        ...(company.notifyCcPhones ?? []),
+      ]),
+    ].filter((phone) => phone !== smsFrom);
     const okSend = await confirm({
       title: "SEND TEST SMS",
-      body: `Text every saved client phone for ${company.name} from the OpenPhone number?`,
+      body: phones.length
+        ? `Text ${phones.join(", ")} from ${smsFrom || "the OpenPhone number"}? The thread stays open in that OpenPhone inbox.`
+        : `No numbers to text. Save a client phone or CC phone first.`,
       confirmLabel: "SEND",
     });
     if (!okSend) return;
@@ -377,8 +411,15 @@ function AdminWorkbench({
       const json = await res.json();
       if (!res.ok) toast.show("bad", json.error ?? "Could not send SMS.");
       else {
-        const phones = Array.isArray(json.phones) ? json.phones.join(", ") : "client phones";
-        toast.show("ok", `SMS sent to ${phones}.`);
+        const sent = Array.isArray(json.phones) ? json.phones.join(", ") : "saved phones";
+        const skipped =
+          Array.isArray(json.skipped) && json.skipped.length
+            ? ` Skipped ${json.skipped.join(", ")} (OpenPhone cannot text its own number).`
+            : "";
+        toast.show(
+          "ok",
+          `SMS sent from ${json.from || smsFrom || "OpenPhone"} to ${sent}. Check the Open inbox, not Done.${skipped}`,
+        );
       }
     } finally {
       setBusy(null);
@@ -683,12 +724,7 @@ function AdminWorkbench({
       (branding[selected.id].accent !== selected.accent ||
         branding[selected.id].background !== selected.background),
   );
-  const mail = selected
-    ? (notify[selected.id] ?? {
-        enabled: selected.notifyEnabled !== false,
-        cc: (selected.notifyCc ?? []).join("\n"),
-      })
-    : null;
+  const mail = selected ? (notify[selected.id] ?? notifyDraftFrom(selected)) : null;
   const clientRecipients = selected
     ? users
         .filter(
@@ -708,6 +744,11 @@ function AdminWorkbench({
         )
         .map((row) => row.phone as string)
     : [];
+  const savedSmsPhones = [
+    ...new Set([...(clientPhones), ...(selected?.notifyCcPhones ?? [])]),
+  ].filter((phone) => phone !== smsFrom);
+  const ccIncludesFrom =
+    Boolean(smsFrom) && parsePhoneList(mail?.ccPhones).phones.includes(smsFrom);
 
   return (
     <>
@@ -1187,7 +1228,7 @@ function AdminWorkbench({
                               ? "Each new FedEx scan emails every Client and the CC list from updates@rahyo.com."
                               : null,
                             smsConfigured
-                              ? "The same scan is also texted from OpenPhone to every saved client phone."
+                              ? `The same scan is also texted from ${smsFrom || "OpenPhone"} to every saved client phone and CC phone. Those threads stay open in the OpenPhone inbox.`
                               : "Add OPENPHONE_API_KEY and OPENPHONE_FROM to send SMS.",
                           ]
                             .filter(Boolean)
@@ -1212,7 +1253,10 @@ function AdminWorkbench({
                       TO CLIENTS: {clientRecipients.length ? clientRecipients.join(", ") : "none invited yet"}
                     </p>
                     <p className="ops-meta">
-                      SMS: {clientPhones.length ? clientPhones.join(", ") : "no client phones yet"}
+                      SMS CLIENTS: {clientPhones.length ? clientPhones.join(", ") : "no client phones yet"}
+                    </p>
+                    <p className="ops-meta">
+                      SMS CC: {(selected.notifyCcPhones ?? []).join(", ") || "no CC phones saved yet"}
                     </p>
                     {smsConfigured ? (
                       <BusyControl
@@ -1222,7 +1266,7 @@ function AdminWorkbench({
                         <button
                           className="ops-key"
                           type="button"
-                          disabled={Boolean(busy) || !clientPhones.length}
+                          disabled={Boolean(busy) || !savedSmsPhones.length}
                           onClick={() => onSendTestSms(selected)}
                         >
                           {busy?.key === "sms" && busy.id === selected.id
@@ -1245,9 +1289,45 @@ function AdminWorkbench({
                         placeholder={"ops@company.com\nwarehouse@company.com"}
                       />
                     </label>
+                    <label>
+                      CC PHONES
+                      <textarea
+                        id="notify-cc-phones"
+                        value={mail.ccPhones}
+                        disabled={busy?.key === "notify"}
+                        aria-invalid={Boolean(notifyPhoneError) || undefined}
+                        aria-describedby={
+                          notifyPhoneError
+                            ? "notify-cc-phones-hint notify-cc-phones-error"
+                            : "notify-cc-phones-hint"
+                        }
+                        onChange={(event) => {
+                          setNotifyPhoneError(null);
+                          setNotify((current) => ({
+                            ...current,
+                            [selected.id]: { ...mail, ccPhones: event.target.value },
+                          }));
+                        }}
+                        onBlur={(event) => setNotifyPhoneError(phoneListProblem(event.target.value))}
+                        placeholder={"+12095551212\n+15025550123"}
+                      />
+                    </label>
+                    <p id="notify-cc-phones-hint" className="ops-meta">
+                      One number per line. Client phones still get the text; these are extra copies for ops.
+                    </p>
+                    {ccIncludesFrom ? (
+                      <p className="ops-meta">
+                        {smsFrom} is the OpenPhone sending number, so it cannot receive a copy of its own texts. Use a different admin phone here.
+                      </p>
+                    ) : null}
+                    {notifyPhoneError ? (
+                      <p id="notify-cc-phones-error" className="tone-bad" role="alert">
+                        {notifyPhoneError}
+                      </p>
+                    ) : null}
                     <BusyControl
                       active={busy?.key === "notify"}
-                      label={busy?.key === "notify" ? busy.label : "Saving email updates"}
+                      label={busy?.key === "notify" ? busy.label : "Saving updates"}
                     >
                       <button
                         className="ops-key"
@@ -1255,7 +1335,7 @@ function AdminWorkbench({
                         disabled={busy?.key === "notify"}
                         onClick={() => onSaveNotify(selected)}
                       >
-                        {busy?.key === "notify" ? busy.label : "SAVE EMAIL UPDATES"}
+                        {busy?.key === "notify" ? busy.label : "SAVE UPDATES"}
                       </button>
                     </BusyControl>
                   </div>

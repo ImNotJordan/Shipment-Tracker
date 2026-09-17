@@ -2418,6 +2418,10 @@ button.ops-open {
   width: 100%;
 }
 
+.ops-notify textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
 .ops-check {
   display: flex;
   align-items: center;

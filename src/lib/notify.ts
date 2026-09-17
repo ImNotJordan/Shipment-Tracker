@@ -1,5 +1,5 @@
 import "server-only";
-import { normalizePhone } from "./phones";
+import { normalizePhone, parsePhoneList } from "./phones";
 import { bootstrapToken, getCompanyById, listUsers, updateShipment } from "./store";
 import type { CompanyRecord, ShipmentRecord, TrackSnapshot } from "./types";
 
@@ -15,7 +15,7 @@ function openPhoneKey() {
   return (process.env.OPENPHONE_API_KEY || process.env.QUO_API_KEY || "").trim();
 }
 
-function openPhoneFrom() {
+export function openPhoneFrom() {
   return normalizePhone(process.env.OPENPHONE_FROM || process.env.QUO_FROM || "") ?? "";
 }
 
@@ -167,7 +167,12 @@ function formatWhen(value?: string | null) {
   }).format(date);
 }
 
-async function notifyAudience(companyId: string, cc: string[], token: string) {
+async function notifyAudience(
+  companyId: string,
+  cc: string[],
+  ccPhones: string[],
+  token: string,
+) {
   const users = await listUsers(token);
   const active = users.filter((user) => !user.disabled);
   const clients = active.filter(
@@ -180,16 +185,42 @@ async function notifyAudience(companyId: string, cc: string[], token: string) {
     ]),
   ];
   const ccSet = new Set(emails);
-  const phones = e164List(
-    active
+  const from = openPhoneFrom();
+  const phones = e164List([
+    ...active
       .filter(
         (user) =>
           user.phone &&
           ((user.role === "client" && user.companyId === companyId) || ccSet.has(user.email)),
       )
       .map((user) => user.phone),
+    ...parsePhoneList(ccPhones).phones,
+  ]);
+  return {
+    emails,
+    phones: phones.filter((phone) => phone !== from),
+    skippedSelf: phones.filter((phone) => phone === from),
+  };
+}
+
+function openPhoneAuthHeaders() {
+  const key = openPhoneKey();
+  return [...new Set([key, key.startsWith("Bearer ") ? key : `Bearer ${key}`])];
+}
+
+function openPhoneError(json: {
+  message?: string;
+  title?: string;
+  description?: string;
+  errors?: { message?: string }[];
+}, fallback: string) {
+  return (
+    json.message ||
+    json.description ||
+    json.title ||
+    json.errors?.map((item) => item.message).filter(Boolean).join(" ") ||
+    fallback
   );
-  return { emails, phones };
 }
 
 async function sendOpenPhone(to: string[], content: string) {
@@ -197,50 +228,68 @@ async function sendOpenPhone(to: string[], content: string) {
     throw new Error("SMS is not configured. Add OPENPHONE_API_KEY and OPENPHONE_FROM.");
   }
   const from = openPhoneFrom();
-  const recipients = e164List(to);
+  const requested = e164List(to);
+  const skippedSelf = requested.filter((number) => number === from);
+  const recipients = requested.filter((number) => number !== from);
   if (!from) {
     throw new Error("OPENPHONE_FROM must be a full number, like +15028016431.");
   }
   if (!recipients.length) {
-    throw new Error("No valid client phone numbers to text.");
+    if (skippedSelf.length) {
+      throw new Error(
+        `${from} is the OpenPhone sending number, so it cannot receive its own texts. Add a client or CC phone that is not that number.`,
+      );
+    }
+    throw new Error("No valid phone numbers to text.");
   }
   const errors: string[] = [];
+  const sent: string[] = [];
   for (const number of recipients) {
     let lastError = `OpenPhone rejected ${number}.`;
     let delivered = false;
-    for (const base of openPhoneBases()) {
-      const res = await fetch(`${base}/v1/messages`, {
-        method: "POST",
-        headers: {
-          Authorization: openPhoneKey(),
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          content,
-          from,
-          to: [number],
-          setInboxStatus: "done",
-        }),
-        cache: "no-store",
-      });
-      if (res.ok) {
-        delivered = true;
-        break;
+    hostLoop: for (const base of openPhoneBases()) {
+      for (const authorization of openPhoneAuthHeaders()) {
+        let res: Response;
+        try {
+          res = await fetch(`${base}/v1/messages`, {
+            method: "POST",
+            headers: {
+              Authorization: authorization,
+              Accept: "application/json",
+              "content-type": "application/json",
+            },
+            body: JSON.stringify({
+              content,
+              from,
+              to: [number],
+            }),
+            cache: "no-store",
+          });
+        } catch (error) {
+          lastError = error instanceof Error ? error.message : `Could not reach ${base}.`;
+          continue hostLoop;
+        }
+        if (res.ok) {
+          delivered = true;
+          sent.push(number);
+          break hostLoop;
+        }
+        const json = (await res.json().catch(() => ({}))) as {
+          message?: string;
+          title?: string;
+          description?: string;
+          errors?: { message?: string }[];
+        };
+        lastError = openPhoneError(json, `OpenPhone rejected ${number} (${res.status}).`);
+        if (res.status === 401 || res.status === 403) continue;
+        if (res.status === 404 || res.status >= 500) continue hostLoop;
+        break hostLoop;
       }
-      const json = (await res.json().catch(() => ({}))) as {
-        message?: string;
-        title?: string;
-        description?: string;
-      };
-      lastError =
-        json.message ||
-        json.description ||
-        json.title ||
-        `OpenPhone rejected ${number} (${res.status}).`;
     }
     if (!delivered) errors.push(lastError);
   }
   if (errors.length) throw new Error(errors.join(" "));
+  return { from, sent, skippedSelf };
 }
 
 function emailHtml(input: {
@@ -308,6 +357,7 @@ export async function notifyTrackingUpdate(input: {
   const { emails: to, phones } = await notifyAudience(
     input.companyId,
     company.notifyCc,
+    company.notifyCcPhones,
     adminToken,
   );
   if (!to.length && !phones.length) return;
@@ -469,16 +519,30 @@ export async function sendTestClientSms(companyId: string, token: string) {
   }
   const company = await getCompanyById(companyId, token);
   if (!company) throw new Error("Company not found.");
-  const { phones } = await notifyAudience(companyId, company.notifyCc, token);
+  const { phones, skippedSelf } = await notifyAudience(
+    companyId,
+    company.notifyCc,
+    company.notifyCcPhones,
+    token,
+  );
   if (!phones.length) {
-    throw new Error("No client phone numbers saved for this company.");
+    if (skippedSelf.length) {
+      throw new Error(
+        `${openPhoneFrom()} is the OpenPhone sending number, so it cannot receive its own texts. Add a client or CC phone that is not that number.`,
+      );
+    }
+    throw new Error("No client or CC phone numbers saved for this company.");
   }
-  await sendOpenPhone(
+  const result = await sendOpenPhone(
     phones,
     [
       `${company.name} Live Board will text this number when FedEx status changes.`,
       boardUrl(company.slug),
     ].join("\n"),
   );
-  return phones;
+  return {
+    from: result.from,
+    phones: result.sent,
+    skipped: skippedSelf,
+  };
 }
