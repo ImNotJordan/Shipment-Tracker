@@ -47,3 +47,14 @@ export function phoneListProblem(raw: string) {
   if (!invalid.length) return null;
   return `Invalid number: ${invalid[0]}. Use a full number with country code, like +12095551212.`;
 }
+
+/** What a phone field may hold while it is being typed: a leading + and digits.
+ *
+ *  Letters, spaces, dashes and brackets are dropped at the keystroke rather
+ *  than left for normalizePhone to reject at save time, so a phone field can
+ *  never show a name where a number belongs. The local shorthands above still
+ *  work, because normalizePhone reads the digits and not the prefix. */
+export function typedPhone(raw: string) {
+  const digits = raw.replace(/\D/g, "");
+  return digits ? `+${digits}` : "";
+}

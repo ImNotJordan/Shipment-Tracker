@@ -22,6 +22,11 @@ export type ConfirmOptions = {
   /* A PDF gets an iframe, artwork gets an <img>: an image in an iframe
      scrolls and sits top-left instead of showing the whole mark. */
   previewKind?: "pdf" | "image";
+  /* The colours the artwork would give the board: the ground painted behind
+     the preview, and the accents listed under it. Shown here so the palette is
+     approved together with the logo rather than hunted for afterwards. */
+  previewGround?: string;
+  previewAccents?: string[];
 };
 
 type Pending = ConfirmOptions & { resolve: (ok: boolean) => void };
@@ -90,7 +95,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               </div>
             </div>
             {pending.previewSrc ? (
-              <div className="confirm-preview">
+              <div className="confirm-preview" style={{ backgroundImage: pending.previewGround }}>
                 <p className="confirm-preview-label">{pending.previewLabel ?? "PDF"}</p>
                 {pending.previewKind === "image" ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -98,6 +103,16 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                 ) : (
                   <iframe title={pending.previewLabel ?? "PDF preview"} src={pending.previewSrc} />
                 )}
+                {pending.previewAccents?.length ? (
+                  <ul className="confirm-preview-accents">
+                    {pending.previewAccents.map((color) => (
+                      <li key={color}>
+                        <span style={{ background: color }} aria-hidden />
+                        {color.toUpperCase()}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
             ) : null}
           </div>

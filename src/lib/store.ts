@@ -21,6 +21,7 @@ import {
   type TrackSnapshot,
   type UserRecord,
 } from "./types";
+import type { BoardGround } from "./logo-palette";
 import { isRole } from "./access";
 import { parseEmailList } from "./emails";
 import { parsePhoneList } from "./phones";
@@ -38,6 +39,61 @@ function slugify(name: string) {
   return slug || "company";
 }
 
+/* Board colours are written straight into inline CSS custom properties, so
+   this is the last place they can be checked. Anything that is not a plain
+   six-digit hex is refused rather than handed to the stylesheet. */
+const HEX_COLOR = /^#[0-9a-f]{6}$/i;
+
+function asHexColor(value: string, field: string) {
+  const clean = String(value ?? "").trim().toLowerCase();
+  if (!HEX_COLOR.test(clean)) {
+    throw new Error(`${field} must be a hex colour like #1b2a33.`);
+  }
+  return clean;
+}
+
+/* A ground becomes CSS, so every number and colour in it is checked here.
+   Throws on a bad write; asCompany swallows the throw so one malformed stored
+   document cannot take the whole board list down with it. */
+function asGround(value: unknown): BoardGround | null {
+  if (value === null || value === undefined) return null;
+  const raw = value as { stops?: unknown };
+  const pct = (v: unknown, max: number) => {
+    const n = Number(v);
+    if (!Number.isFinite(n) || n < 0 || n > max) {
+      throw new Error(`Ground positions must be between 0 and ${max}.`);
+    }
+    return Math.round(n);
+  };
+  // A six-by-six sample of a logo is thirty-six smears at most.
+  if (!Array.isArray(raw.stops) || !raw.stops.length || raw.stops.length > 36) {
+    throw new Error("A ground needs between one and thirty-six smears.");
+  }
+  return {
+    stops: raw.stops.map((stop) => {
+      const entry = stop as { color?: unknown; x?: unknown; y?: unknown; at?: unknown };
+      return {
+        color: asHexColor(String(entry.color ?? ""), "Ground colour"),
+        x: pct(entry.x, 100),
+        y: pct(entry.y, 100),
+        // A flat board reaches past its own edge on purpose, so the spread is
+        // allowed past 100 while a position is not.
+        at: pct(entry.at, 200),
+      };
+    }),
+  };
+}
+
+/** Lenient read for stored data: a malformed ground becomes no ground rather
+ *  than an error that would take the whole company list down. */
+function readGround(value: unknown): BoardGround | null {
+  try {
+    return asGround(value);
+  } catch {
+    return null;
+  }
+}
+
 function asCompany(id: string, data: Record<string, unknown>): CompanyRecord {
   return {
     id: String(data.id ?? id),
@@ -46,6 +102,7 @@ function asCompany(id: string, data: Record<string, unknown>): CompanyRecord {
     createdAt: String(data.createdAt ?? ""),
     accent: String(data.accent ?? DEFAULT_ACCENT),
     background: String(data.background ?? DEFAULT_BACKGROUND),
+    ground: readGround(data.ground),
     logoUrl: (data.logoUrl as string | null) ?? null,
     notifyEnabled: data.notifyEnabled !== false,
     notifyCc: parseEmailList(data.notifyCc),
@@ -353,6 +410,7 @@ export async function createCompany(name: string, token: string) {
     createdAt: new Date().toISOString(),
     accent: DEFAULT_ACCENT,
     background: DEFAULT_BACKGROUND,
+    ground: null,
     logoUrl: null,
     notifyEnabled: true,
     notifyCc: [],
@@ -367,7 +425,14 @@ export async function updateCompany(
   patch: Partial<
     Pick<
       CompanyRecord,
-      "name" | "accent" | "background" | "logoUrl" | "notifyEnabled" | "notifyCc" | "notifyCcPhones"
+      | "name"
+      | "accent"
+      | "background"
+      | "ground"
+      | "logoUrl"
+      | "notifyEnabled"
+      | "notifyCc"
+      | "notifyCcPhones"
     >
   >,
   token: string,
@@ -379,8 +444,11 @@ export async function updateCompany(
     next.name = patch.name.trim();
     if (!next.name) throw new Error("Company name is required.");
   }
-  if (patch.accent !== undefined) next.accent = patch.accent;
-  if (patch.background !== undefined) next.background = patch.background;
+  if (patch.accent !== undefined) next.accent = asHexColor(patch.accent, "Accent");
+  if (patch.background !== undefined) {
+    next.background = asHexColor(patch.background, "Background");
+  }
+  if (patch.ground !== undefined) next.ground = asGround(patch.ground);
   if (patch.logoUrl !== undefined) next.logoUrl = patch.logoUrl;
   if (patch.notifyEnabled !== undefined) next.notifyEnabled = patch.notifyEnabled;
   if (patch.notifyCc !== undefined) next.notifyCc = parseEmailList(patch.notifyCc);
@@ -397,6 +465,7 @@ export async function updateCompany(
   if (patch.name !== undefined) fields.name = next.name;
   if (patch.accent !== undefined) fields.accent = next.accent;
   if (patch.background !== undefined) fields.background = next.background;
+  if (patch.ground !== undefined) fields.ground = next.ground;
   if (patch.logoUrl !== undefined) fields.logoUrl = next.logoUrl;
   if (patch.notifyEnabled !== undefined) fields.notifyEnabled = next.notifyEnabled;
   if (patch.notifyCc !== undefined) fields.notifyCc = next.notifyCc;

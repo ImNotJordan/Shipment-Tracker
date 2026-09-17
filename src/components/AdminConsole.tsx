@@ -8,14 +8,25 @@ import {
   FALLBACK,
   matchingAccents,
   matchingBackgrounds,
+  groundSwatch,
+  paletteFromFile,
   paletteFromUrl,
+  type BoardGround,
+  type Palette,
 } from "@/lib/logo-palette";
 import { GateMark } from "./GateMark";
 import { ActionProgress, BusyControl } from "./ActionProgress";
 import { ConfirmProvider, openViewAsTab, useConfirm } from "./ConfirmDialog";
 import { pulsePanel, staggerRows } from "@/lib/ops-motion";
 import { parseEmailList } from "@/lib/emails";
-import { normalizePhone, parsePhoneList, phoneListProblem, phoneProblem } from "@/lib/phones";
+import {
+  normalizePhone,
+  parsePhoneList,
+  phoneListProblem,
+  phoneProblem,
+  typedPhone,
+} from "@/lib/phones";
+import { ChipInput } from "./ChipInput";
 import { OpsToast, useOpsToast } from "./OpsToast";
 import type { CompanyRecord, Role, SessionUser, UserRecord } from "@/lib/types";
 
@@ -125,8 +136,11 @@ function AdminWorkbench({
   // straight from the server, so the pickers cannot show a colour the board
   // does not actually have.
   const [branding, setBranding] = useState<
-    Record<string, { accent: string; background: string }>
+    Record<string, { accent: string; background: string; ground: BoardGround | null }>
   >({});
+  // Suggestions are read from the selected board's own logo, not from whatever
+  // colours it happens to be wearing at the moment.
+  const [logoPalette, setLogoPalette] = useState<Palette>(FALLBACK);
   const [notify, setNotify] = useState<Record<string, NotifyDraft>>(
     Object.fromEntries(initialCompanies.map((company) => [company.id, notifyDraftFrom(company)])),
   );
@@ -136,7 +150,7 @@ function AdminWorkbench({
   const [notifyPhoneError, setNotifyPhoneError] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<string, UserEdit>>({});
   const [busy, setBusy] = useState<{
-    key: "create" | "notify" | "invite" | "save" | "sms" | "delete" | "delete-company";
+    key: "create" | "notify" | "invite" | "save" | "sms" | "delete" | "delete-company" | "brand";
     id?: string;
     label: string;
     value?: number;
@@ -198,13 +212,14 @@ function AdminWorkbench({
 
   function setBrand(
     company: CompanyRecord,
-    patch: Partial<{ accent: string; background: string }>,
+    patch: Partial<{ accent: string; background: string; ground: BoardGround | null }>,
   ) {
     setBranding((current) => ({
       ...current,
       [company.id]: {
         accent: current[company.id]?.accent ?? company.accent,
         background: current[company.id]?.background ?? company.background,
+        ground: current[company.id]?.ground ?? company.ground,
         ...patch,
       },
     }));
@@ -212,18 +227,25 @@ function AdminWorkbench({
 
   async function onSuggestColors(company: CompanyRecord) {
     const palette = company.logoUrl ? await paletteFromUrl(company.logoUrl) : FALLBACK;
+    setLogoPalette(palette);
+    // The measured arrangement leads when the logo has one, and its centre
+    // colour becomes the flat --brand the panel tints are mixed from.
+    const ground = palette.grounds[0] ?? null;
     setBranding((current) => ({
       ...current,
       [company.id]: {
         accent: palette.accents[0],
-        background: palette.backgrounds[0],
+        background: ground?.stops[0]?.color ?? company.background,
+        ground: ground && ground.stops.length > 1 ? ground : null,
       },
     }));
     toast.show(
       "ok",
-      company.logoUrl
-        ? "Suggested colours read from the logo. SAVE COLORS to keep them."
-        : "No logo on this board, so the defaults are suggested. SAVE COLORS to keep them.",
+      !company.logoUrl
+        ? "No logo on this board, so the defaults are suggested. SAVE COLORS to keep them."
+        : (ground?.stops.length ?? 0) > 1
+          ? "Ground read from where the logo's colours sit. SAVE COLORS to keep it."
+          : "Colours read from the logo. SAVE COLORS to keep them.",
     );
   }
 
@@ -242,7 +264,9 @@ function AdminWorkbench({
   function openPreview(kind: "tracker" | "client") {
     if (kind === "client" && !selected) return;
     setPreviewReady(false);
-    setPreview(kind === "tracker" ? { kind } : { kind, companyId: selected!.id });
+    // The tracker preview follows the board selected in the console, instead
+    // of whatever the server would otherwise default to.
+    setPreview({ kind, companyId: selected?.id });
   }
 
   function previewCompanyId(id: string) {
@@ -256,6 +280,9 @@ function AdminWorkbench({
   }
 
   async function onCreate(draft: NewCompany) {
+    // The dialog closes before the work starts: a modal owns the browser's top
+    // layer, so the console's loading screen could never cover it.
+    setCreating(false);
     setBusy({ key: "create", label: "CREATING COMPANY" });
     try {
       const res = await fetch("/api/companies", {
@@ -273,7 +300,11 @@ function AdminWorkbench({
       await fetch(`/api/companies/${json.company.id}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ accent: draft.accent, background: draft.background }),
+        body: JSON.stringify({
+          accent: draft.accent,
+          background: draft.background,
+          ground: draft.ground,
+        }),
       });
       if (draft.logo) {
         const data = new FormData();
@@ -287,7 +318,6 @@ function AdminWorkbench({
           toast.show("bad", logoJson?.error ?? "Board created, but the logo did not upload.");
         }
       }
-      setCreating(false);
       toast.show("ok", `${json.company.name} is ready at /track/${json.company.slug}`);
       setSelectedId(json.company.id);
       await load();
@@ -436,50 +466,89 @@ function AdminWorkbench({
     const colors = branding[company.id] ?? {
       accent: company.accent,
       background: company.background,
+      ground: company.ground,
     };
-    const res = await fetch(`/api/companies/${company.id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        name: company.name,
-        accent: colors.accent,
-        background: colors.background,
-      }),
-    });
-    const json = await res.json();
-    if (!res.ok) {
-      toast.show("bad", json.error ?? "Could not save board colors.");
-    } else {
-      // The server now holds these, so the override has nothing left to say.
-      discardBrand(company);
-      toast.show("ok", `Updated ${company.name} board colors.`);
+    setBusy({ key: "brand", id: company.id, label: "SAVING COLORS" });
+    try {
+      const res = await fetch(`/api/companies/${company.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: company.name,
+          accent: colors.accent,
+          background: colors.background,
+          ground: colors.ground,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.show("bad", json.error ?? "Could not save board colors.");
+      } else {
+        // The server now holds these, so the override has nothing left to say.
+        discardBrand(company);
+        toast.show("ok", `Updated ${company.name} board colors.`);
+      }
+      await load();
+    } finally {
+      setBusy(null);
     }
-    await load();
   }
 
-  async function onLogo(companyId: string, file: File | undefined) {
+  async function onLogo(company: CompanyRecord, file: File | undefined) {
     if (!file) return;
     // The pick is shown before anything is sent, so a wrong file is caught by
-    // eye here rather than on the live board afterwards.
+    // eye here rather than on the live board afterwards — and with it the
+    // colours it would hand the board, so the artwork and its palette are one
+    // decision instead of an upload followed by a hunt for SUGGEST COLORS.
     const preview = URL.createObjectURL(file);
     try {
+      const palette = await paletteFromFile(file);
+      const ground = palette.grounds[0] ?? null;
+      const measured = ground && ground.stops.length > 1 ? ground : null;
       const okLogo = await confirm({
         title: "UPDATE LOGO",
-        body: `Replace this company's board logo with ${file.name}?`,
+        body: `Replace ${company.name}'s board logo with ${file.name}? Its colours are applied to the board with it.`,
         confirmLabel: "UPLOAD",
         previewSrc: preview,
         previewLabel: "NEW LOGO",
         previewKind: "image",
+        previewGround: ground ? groundSwatch(ground) : undefined,
+        previewAccents: palette.accents,
       });
       if (!okLogo) return;
+      setBusy({ key: "brand", id: company.id, label: "UPLOADING LOGO" });
       const data = new FormData();
       data.set("logo", file);
-      const res = await fetch(`/api/companies/${companyId}/logo`, { method: "POST", body: data });
+      const res = await fetch(`/api/companies/${company.id}/logo`, { method: "POST", body: data });
       const json = await res.json();
-      if (!res.ok) toast.show("bad", json.error ?? "Could not upload logo.");
-      else toast.show("ok", "Logo updated.");
+      if (!res.ok) {
+        toast.show("bad", json.error ?? "Could not upload logo.");
+        return;
+      }
+      const painted = await fetch(`/api/companies/${company.id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          name: company.name,
+          accent: palette.accents[0],
+          background: ground?.stops[0]?.color ?? company.background,
+          ground: measured,
+        }),
+      });
+      // The logo is live either way, so a failed recolour is reported rather
+      // than pretended away.
+      toast.show(
+        painted.ok ? "ok" : "bad",
+        painted.ok
+          ? "Logo updated, and the board recoloured from it."
+          : "Logo updated, but its colours could not be saved.",
+      );
+      setLogoPalette(palette);
+      // The server now holds these, so a stale override must not mask them.
+      discardBrand(company);
       await load();
     } finally {
+      setBusy(null);
       URL.revokeObjectURL(preview);
     }
   }
@@ -680,22 +749,23 @@ function AdminWorkbench({
     }
   }
 
-  const previewCompany =
-    preview?.kind === "client"
-      ? (companies.find((item) => item.id === preview.companyId) ?? null)
-      : null;
+  const previewCompany = preview?.companyId
+    ? (companies.find((item) => item.id === preview.companyId) ?? null)
+    : null;
   // The previewed page, without ?embed — what a new tab should open.
   const previewHref = !preview
     ? null
     : preview.kind === "tracker"
-      ? "/tracker"
+      ? previewCompany
+        ? `/tracker?companyId=${previewCompany.id}`
+        : "/tracker"
       : previewCompany
         ? `/track/${previewCompany.slug}`
         : null;
   const previewLabel =
     preview?.kind === "client"
       ? `CLIENT — ${previewCompany?.name.toUpperCase() ?? "—"}`
-      : "TRACKER";
+      : `TRACKER — ${previewCompany?.name.toUpperCase() ?? "—"}`;
 
   const needle = query.trim().toLowerCase();
   const shownCompanies = needle
@@ -716,14 +786,37 @@ function AdminWorkbench({
     .sort((a, b) => Number(b.id === user.id) - Number(a.id === user.id));
   const selected = companies.find((item) => item.id === selectedId) ?? null;
   const colors = selected
-    ? (branding[selected.id] ?? { accent: selected.accent, background: selected.background })
+    ? (branding[selected.id] ?? {
+        accent: selected.accent,
+        background: selected.background,
+        ground: selected.ground,
+      })
     : null;
   const brandDirty = Boolean(
     selected &&
       branding[selected.id] &&
       (branding[selected.id].accent !== selected.accent ||
-        branding[selected.id].background !== selected.background),
+        branding[selected.id].background !== selected.background ||
+        JSON.stringify(branding[selected.id].ground) !== JSON.stringify(selected.ground)),
   );
+
+  // The selected board's own logo decides what the pickers offer. The read is
+  // async and a fast click can supersede it, so a stale answer is dropped
+  // rather than shown against the wrong board.
+  useEffect(() => {
+    const url = selected?.logoUrl ?? null;
+    if (!url) {
+      setLogoPalette(FALLBACK);
+      return;
+    }
+    let alive = true;
+    void paletteFromUrl(url).then((next) => {
+      if (alive) setLogoPalette(next);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [selected?.logoUrl]);
   const mail = selected ? (notify[selected.id] ?? notifyDraftFrom(selected)) : null;
   const clientRecipients = selected
     ? users
@@ -873,7 +966,7 @@ function AdminWorkbench({
             {preview && previewHref ? (
               <iframe
                 key={previewHref}
-                src={`${previewHref}?embed=1`}
+                src={`${previewHref}${previewHref.includes("?") ? "&" : "?"}embed=1`}
                 title={`Preview of ${previewLabel}`}
                 data-ready={previewReady}
                 onLoad={() => setPreviewReady(true)}
@@ -994,7 +1087,7 @@ function AdminWorkbench({
                         aria-label={`Phone for ${row.email}`}
                         placeholder="+63917xxxxxxx"
                         disabled={locked}
-                        onChange={(event) => patchEdit(row.id, { phone: event.target.value })}
+                        onChange={(event) => patchEdit(row.id, { phone: typedPhone(event.target.value) })}
                         onKeyDown={(event) => {
                           if (event.key === "Enter") {
                             event.preventDefault();
@@ -1128,8 +1221,20 @@ function AdminWorkbench({
                       onChange={(event) => setBrand(selected, { accent: event.target.value })}
                     />
                   </label>
-                  <div className="ops-suggest" role="group" aria-label="Accents matching this background">
-                    {matchingAccents(colors.background).map((hex) => (
+                  {/* Read from this board's own logo. With no logo there is
+                      nothing to read, so the offer falls back to colours that
+                      at least sit well against the ground already chosen. */}
+                  <div
+                    className="ops-suggest"
+                    role="group"
+                    aria-label={
+                      selected.logoUrl ? "Accents from the logo" : "Accents matching this background"
+                    }
+                  >
+                    {(selected.logoUrl
+                      ? logoPalette.accents
+                      : matchingAccents(colors.background)
+                    ).map((hex) => (
                       <button
                         key={hex}
                         type="button"
@@ -1148,21 +1253,72 @@ function AdminWorkbench({
                     <input
                       type="color"
                       value={colors.background}
-                      onChange={(event) => setBrand(selected, { background: event.target.value })}
+                      onChange={(event) =>
+                        setBrand(selected, {
+                          background: event.target.value,
+                          ground: null,
+                        })
+                      }
                     />
                   </label>
-                  <div className="ops-suggest" role="group" aria-label="Backgrounds matching this accent">
-                    {matchingBackgrounds(colors.accent).map((hex) => (
-                      <button
-                        key={hex}
-                        type="button"
-                        className={hex === colors.background ? "is-on" : undefined}
-                        style={{ background: hex }}
-                        title={hex.toUpperCase()}
-                        aria-label={`Use background ${hex.toUpperCase()}`}
-                        onClick={() => setBrand(selected, { background: hex })}
-                      />
-                    ))}
+                  {/* With a logo these are grounds read off the artwork: the
+                      measured arrangement first, then its flat colours. With
+                      no logo there is nothing to read, so colours that sit
+                      well against the accent stand in. */}
+                  <div
+                    className="ops-suggest"
+                    role="group"
+                    aria-label={
+                      selected.logoUrl ? "Grounds from the logo" : "Backgrounds matching this accent"
+                    }
+                  >
+                    {selected.logoUrl
+                      ? logoPalette.grounds.map((option) => {
+                          const measured = option.stops.length > 1;
+                          const base = option.stops[0].color;
+                          const on = measured
+                            ? JSON.stringify(option) === JSON.stringify(colors.ground)
+                            : base === colors.background && !colors.ground;
+                          return (
+                            <button
+                              key={groundSwatch(option)}
+                              type="button"
+                              className={on ? "is-on" : undefined}
+                              style={{ background: groundSwatch(option) }}
+                              title={
+                                measured
+                                  ? option.stops.map((stop) => stop.color.toUpperCase()).join(" to ")
+                                  : base.toUpperCase()
+                              }
+                              aria-label={
+                                measured
+                                  ? `Use the ground read from the logo, ${option.stops
+                                      .map((stop) => stop.color.toUpperCase())
+                                      .join(" to ")}`
+                                  : `Use background ${base.toUpperCase()}`
+                              }
+                              onClick={() =>
+                                setBrand(selected, {
+                                  background: base,
+                                  ground: measured ? option : null,
+                                })
+                              }
+                            />
+                          );
+                        })
+                      : matchingBackgrounds(colors.accent).map((hex) => (
+                          <button
+                            key={hex}
+                            type="button"
+                            className={
+                              hex === colors.background && !colors.ground ? "is-on" : undefined
+                            }
+                            style={{ background: hex }}
+                            title={hex.toUpperCase()}
+                            aria-label={`Use background ${hex.toUpperCase()}`}
+                            onClick={() => setBrand(selected, { background: hex, ground: null })}
+                          />
+                        ))}
                   </div>
                 </div>
                 <div className="ops-brand-actions">
@@ -1195,7 +1351,7 @@ function AdminWorkbench({
                     type="file"
                     accept="image/png,image/jpeg,image/webp,image/svg+xml"
                     onChange={(event) => {
-                      void onLogo(selected.id, event.target.files?.[0]);
+                      void onLogo(selected, event.target.files?.[0]);
                       // Cleared so cancelling the preview and picking the same
                       // file again still counts as a change.
                       event.target.value = "";
@@ -1275,45 +1431,43 @@ function AdminWorkbench({
                         </button>
                       </BusyControl>
                     ) : null}
-                    <label>
+                    <p className="ops-field-label" id="notify-cc-emails-label">
                       CC EMAILS
-                      <textarea
-                        value={mail.cc}
-                        disabled={busy?.key === "notify"}
-                        onChange={(event) =>
-                          setNotify((current) => ({
-                            ...current,
-                            [selected.id]: { ...mail, cc: event.target.value },
-                          }))
-                        }
-                        placeholder={"ops@company.com\nwarehouse@company.com"}
-                      />
-                    </label>
-                    <label>
+                    </p>
+                    <ChipInput
+                      id="notify-cc-emails"
+                      kind="email"
+                      value={mail.cc}
+                      disabled={busy?.key === "notify"}
+                      describedBy="notify-cc-emails-label"
+                      placeholder="ops@company.com"
+                      onChange={(next) =>
+                        setNotify((current) => ({
+                          ...current,
+                          [selected.id]: { ...mail, cc: next },
+                        }))
+                      }
+                    />
+                    <p className="ops-field-label" id="notify-cc-phones-label">
                       CC PHONES
-                      <textarea
-                        id="notify-cc-phones"
-                        value={mail.ccPhones}
-                        disabled={busy?.key === "notify"}
-                        aria-invalid={Boolean(notifyPhoneError) || undefined}
-                        aria-describedby={
-                          notifyPhoneError
-                            ? "notify-cc-phones-hint notify-cc-phones-error"
-                            : "notify-cc-phones-hint"
-                        }
-                        onChange={(event) => {
-                          setNotifyPhoneError(null);
-                          setNotify((current) => ({
-                            ...current,
-                            [selected.id]: { ...mail, ccPhones: event.target.value },
-                          }));
-                        }}
-                        onBlur={(event) => setNotifyPhoneError(phoneListProblem(event.target.value))}
-                        placeholder={"+12095551212\n+15025550123"}
-                      />
-                    </label>
+                    </p>
+                    <ChipInput
+                      id="notify-cc-phones"
+                      kind="phone"
+                      value={mail.ccPhones}
+                      disabled={busy?.key === "notify"}
+                      describedBy="notify-cc-phones-label notify-cc-phones-hint"
+                      placeholder="+12095551212"
+                      onChange={(next) => {
+                        setNotifyPhoneError(null);
+                        setNotify((current) => ({
+                          ...current,
+                          [selected.id]: { ...mail, ccPhones: next },
+                        }));
+                      }}
+                    />
                     <p id="notify-cc-phones-hint" className="ops-meta">
-                      One number per line. Client phones still get the text; these are extra copies for ops.
+                      Press Enter after each number. Client phones still get the text; these are extra copies for ops.
                     </p>
                     {ccIncludesFrom ? (
                       <p className="ops-meta">
@@ -1392,7 +1546,7 @@ function AdminWorkbench({
                   inputMode="tel"
                   autoComplete="tel"
                   value={invite.phone}
-                  onChange={(event) => setInvite({ ...invite, phone: event.target.value })}
+                  onChange={(event) => setInvite({ ...invite, phone: typedPhone(event.target.value) })}
                   placeholder="+63917xxxxxxx"
                   disabled={busy?.key === "invite"}
                 />
@@ -1415,16 +1569,18 @@ function AdminWorkbench({
                 </select>
               </label>
             )}
-            <label>
+            <p className="ops-field-label" id="invite-cc-label">
               CC EMAILS
-              <textarea
-                className="ops-cc"
-                value={invite.cc}
-                disabled={busy?.key === "invite"}
-                onChange={(event) => setInvite({ ...invite, cc: event.target.value })}
-                placeholder={"ops@company.com\nwarehouse@company.com"}
-              />
-            </label>
+            </p>
+            <ChipInput
+              id="invite-cc"
+              kind="email"
+              value={invite.cc}
+              disabled={busy?.key === "invite"}
+              describedBy="invite-cc-label"
+              placeholder="ops@company.com"
+              onChange={(next) => setInvite({ ...invite, cc: next })}
+            />
             <BusyControl
               active={busy?.key === "invite"}
               label={busy?.key === "invite" ? busy.label : "Inviting user"}
@@ -1454,13 +1610,16 @@ function AdminWorkbench({
         onClose={() => setCreating(false)}
         onSubmit={(draft) => void onCreate(draft)}
       />
-      {/* The sign-in gate's loader, reused: adding or removing a board rebuilds
-          the whole console, so it owns the screen while it runs. The create
-          dialog carries its own copy, because a modal sits in the top layer
-          above anything a z-indexed veil out here can reach. */}
+      {/* One loader for the whole console, the same one the sign-in gate uses.
+          Adding, removing or recolouring a board reloads the list behind it,
+          so it owns the screen until the work settles. */}
       <ActionProgress
         overlay
-        active={(busy?.key === "create" && !creating) || busy?.key === "delete-company"}
+        active={
+          busy?.key === "create" ||
+          busy?.key === "delete-company" ||
+          busy?.key === "brand"
+        }
         label={busy?.label ?? ""}
       />
     </>

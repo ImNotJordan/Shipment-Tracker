@@ -28,10 +28,14 @@
   background:
     radial-gradient(
         120% 70% at 50% -10%,
-        color-mix(in oklab, var(--brand) var(--tint-glow), transparent),
+        color-mix(in oklab, var(--brand) var(--head-glow, var(--tint-glow)), transparent),
         transparent 62%
       )
       no-repeat,
+    /* The logo's own colours, laid out where they sit in the artwork. Resolves
+       to `none` for a board with no measured ground, leaving the wash below as
+       the only layer. */
+    var(--brand-ground),
     var(--ink-2);
 }
 
@@ -920,15 +924,16 @@ textarea:disabled,
 
    Base styles are the static state — parcel, rail, destination — so a
    reduced-motion viewer still gets a visible indicator when it appears. */
-/* Full-page veil: the page dims and blurs behind whichever story is playing. */
+/* Full-page veil: the page blurs behind whichever story is playing. */
 .gate-veil {
   position: fixed;
   inset: 0;
   z-index: 80;
   display: grid;
   place-items: center;
-  /* Blur is applied inline in ActionProgress — see the note there. */
-  background: rgba(6, 9, 11, 0.86);
+  /* Blur alone separates the loader from the page: a scrim on top of it turns
+     every console, preview and board into a black slab while it runs. */
+  background: transparent;
   opacity: 0;
   visibility: hidden;
   transition: opacity 220ms ease, visibility 0s linear 220ms;
@@ -937,7 +942,6 @@ textarea:disabled,
 .gate-veil.is-inset {
   position: absolute;
   z-index: 4;
-  background: color-mix(in oklab, var(--panel) 88%, transparent);
 }
 
 .gate-veil[data-active="true"] {
@@ -951,8 +955,7 @@ textarea:disabled,
   --amber: color-mix(in oklab, var(--brand-accent) 72%, #2a1a02);
 }
 
-:root[data-theme="light"] .gate-hero,
-:root[data-theme="light"] .gate-veil:not(.is-inset) {
+:root[data-theme="light"] .gate-hero {
   --ivory: #eff0f0;
   --ivory-dim: #c0c1c1;
   --seam: #373e3d;
@@ -1797,7 +1800,87 @@ a.primary {
 }
 
 .ops-form textarea { min-height: 140px; resize: vertical; }
-.ops-form textarea.ops-cc { min-height: 72px; }
+
+/* The chips and the field that adds them are ONE control, so they share one
+   box. This block styles the input itself because .ops-chips is used inside
+   .facts as well as .ops-form, and only .ops-form pads its inputs. */
+.ops-chips {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 8px;
+  border: 1px solid var(--seam);
+  border-radius: var(--r-ctl);
+  background: var(--ink-2);
+  transition: border-color var(--fast) var(--ease);
+}
+
+.ops-chips:focus-within {
+  border-color: var(--amber);
+}
+
+.ops-chips input {
+  width: 100%;
+  padding: 5px 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ivory);
+}
+
+/* The box already shows focus, so the control does not draw a second ring
+   inside itself. */
+.ops-chips input:focus,
+.ops-chips input:focus-visible {
+  outline: none;
+}
+
+.ops-chips > .tone-bad {
+  margin: 0;
+  font-size: 11px;
+}
+
+.ops-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ops-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 3px 3px 9px;
+  border: 1px solid var(--seam);
+  border-radius: 6px;
+  background: var(--ink);
+  font-family: var(--font-data);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ivory);
+}
+
+.ops-chip button {
+  display: grid;
+  place-items: center;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ivory-dim);
+  cursor: pointer;
+}
+
+.ops-chip button:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--amber) 22%, transparent);
+  color: var(--ivory);
+}
 
 .primary {
   background: var(--ivory);
@@ -2156,11 +2239,43 @@ button.ops-open {
 
 .confirm-preview {
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto 1fr auto;
   min-width: 0;
   min-height: 0;
   border-left: 1px solid var(--seam);
   background: var(--ink-2);
+}
+
+/* The colours the artwork would hand the board, under the artwork itself. */
+.confirm-preview-accents {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 14px;
+  list-style: none;
+  border-top: 1px solid var(--seam);
+  background: color-mix(in oklab, var(--ink-2) 78%, transparent);
+}
+
+.confirm-preview-accents li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 4px 5px;
+  border: 1px solid var(--seam);
+  border-radius: var(--r-ctl);
+  font-family: var(--font-data);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ivory-dim);
+}
+
+.confirm-preview-accents span {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.35);
 }
 
 .confirm-preview-label {

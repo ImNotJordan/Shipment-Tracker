@@ -7,15 +7,19 @@ import { homePath } from "@/lib/access";
 export default async function TrackerPage({
   searchParams,
 }: {
-  searchParams: Promise<{ embed?: string }>;
+  searchParams: Promise<{ embed?: string; companyId?: string }>;
 }) {
   const context = await readSessionContext();
   if (!context) redirect("/login?next=/tracker");
   if (context.user.mustChangePassword) redirect("/login");
   if (context.user.role === "client") redirect(homePath(context.user));
-  const { embed } = await searchParams;
+  const { embed, companyId: asked } = await searchParams;
   const companies = await visibleCompanies(context.user, context.idToken);
   const selected =
+    // A company named in the URL only wins if the viewer can actually see it.
+    // visibleCompanies is already role-scoped, so matching against it is what
+    // stops the param reaching past what this session is allowed.
+    companies.find((company) => company.id === asked) ??
     companies.find((company) => company.id === context.user.companyId) ??
     companies.find((company) => company.slug === "ronin") ??
     companies[0];

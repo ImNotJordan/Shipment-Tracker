@@ -170,6 +170,13 @@ function TrackerWorkbench({
     setAudits([]);
     setSelectedId(null);
     setCompanyId(id);
+    // The choice goes into the URL, so a reload, a shared link and the admin
+    // preview all land on this company instead of the server default. Pushed
+    // with replaceState rather than the router so the page is not refetched
+    // on top of the load below.
+    const url = new URL(window.location.href);
+    url.searchParams.set("companyId", id);
+    window.history.replaceState(null, "", url);
     try {
       await load(id);
     } finally {

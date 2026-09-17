@@ -38,6 +38,7 @@ export async function GET(
         slug: company.slug,
         accent: company.accent,
         background: company.background,
+        ground: company.ground,
         logoUrl: company.logoUrl,
       },
       shipments: shipments.map((item) => ({

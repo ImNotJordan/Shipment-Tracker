@@ -1,3 +1,5 @@
+import type { BoardGround } from "./logo-palette";
+
 export type Role = "admin" | "tracker" | "client";
 
 export type UserRecord = {
@@ -21,6 +23,9 @@ export type CompanyRecord = {
   createdAt: string;
   accent: string;
   background: string;
+  /** Ground measured from the logo: where its real colours actually sit.
+   *  Null keeps the board the flat `background` colour. */
+  ground: BoardGround | null;
   logoUrl: string | null;
   notifyEnabled: boolean;
   notifyCc: string[];
@@ -104,6 +109,7 @@ export type PublicBoard = {
     slug: string;
     accent: string;
     background: string;
+    ground: BoardGround | null;
     logoUrl: string | null;
   };
   shipments: PublicShipment[];
