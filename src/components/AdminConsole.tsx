@@ -100,7 +100,7 @@ function AdminWorkbench({
   const [emailConfigured, setEmailConfigured] = useState(false);
   const [smsConfigured, setSmsConfigured] = useState(false);
   const [busy, setBusy] = useState<{
-    key: "create" | "notify" | "invite" | "role" | "delete";
+    key: "create" | "notify" | "invite" | "role" | "delete" | "delete-company";
     id?: string;
     label: string;
     value?: number;
@@ -290,7 +290,7 @@ function AdminWorkbench({
       danger: true,
     });
     if (!okDelete) return;
-    setBusy({ key: "delete", id, label: "DELETING COMPANY" });
+    setBusy({ key: "delete-company", id, label: "DELETING COMPANY" });
     try {
       const res = await fetch(`/api/companies/${id}`, { method: "DELETE" });
       const json = await res.json();
@@ -368,19 +368,29 @@ function AdminWorkbench({
 
   async function onLogo(companyId: string, file: File | undefined) {
     if (!file) return;
-    const okLogo = await confirm({
-      title: "UPDATE LOGO",
-      body: `Replace this company's board logo with ${file.name}?`,
-      confirmLabel: "UPLOAD",
-    });
-    if (!okLogo) return;
-    const data = new FormData();
-    data.set("logo", file);
-    const res = await fetch(`/api/companies/${companyId}/logo`, { method: "POST", body: data });
-    const json = await res.json();
-    if (!res.ok) toast.show("bad", json.error ?? "Could not upload logo.");
-    else toast.show("ok", "Logo updated.");
-    await load();
+    // The pick is shown before anything is sent, so a wrong file is caught by
+    // eye here rather than on the live board afterwards.
+    const preview = URL.createObjectURL(file);
+    try {
+      const okLogo = await confirm({
+        title: "UPDATE LOGO",
+        body: `Replace this company's board logo with ${file.name}?`,
+        confirmLabel: "UPLOAD",
+        previewSrc: preview,
+        previewLabel: "NEW LOGO",
+        previewKind: "image",
+      });
+      if (!okLogo) return;
+      const data = new FormData();
+      data.set("logo", file);
+      const res = await fetch(`/api/companies/${companyId}/logo`, { method: "POST", body: data });
+      const json = await res.json();
+      if (!res.ok) toast.show("bad", json.error ?? "Could not upload logo.");
+      else toast.show("ok", "Logo updated.");
+      await load();
+    } finally {
+      URL.revokeObjectURL(preview);
+    }
   }
 
   async function onInvite(event: FormEvent) {
@@ -592,11 +602,17 @@ function AdminWorkbench({
         `${company.name} ${company.slug}`.toLowerCase().includes(needle),
       )
     : companies;
-  const shownUsers = needle
+  // Whoever is signed in reads their own account first, so the row whose
+  // controls are all disabled is never hunted for. Array.sort is stable, so
+  // everyone else keeps the email order the server already put them in.
+  const shownUsers = (needle
     ? users.filter((row) =>
         `${row.name ?? ""} ${row.email} ${row.role}`.toLowerCase().includes(needle),
       )
-    : users;
+    : users
+  )
+    .slice()
+    .sort((a, b) => Number(b.id === user.id) - Number(a.id === user.id));
   const selected = companies.find((item) => item.id === selectedId) ?? null;
   const colors = selected
     ? (branding[selected.id] ?? { accent: selected.accent, background: selected.background })
@@ -787,7 +803,7 @@ function AdminWorkbench({
             ) : (
               shownCompanies.map((company) => {
                 const active = company.id === selected?.id;
-                const deleting = busy?.key === "delete" && busy.id === company.id;
+                const deleting = busy?.key === "delete-company" && busy.id === company.id;
                 return (
                   <li key={company.id}>
                     <button
@@ -797,8 +813,14 @@ function AdminWorkbench({
                     >
                       <span className="ship-num">{company.name}</span>
                       <span className="ship-lane">/track/{company.slug}</span>
-                      <span className="ship-status">{company.logoUrl ? "LOGO" : "NO LOGO"}</span>
+                      {company.logoUrl ? null : <span className="ship-status">NO LOGO</span>}
                     </button>
+                    {/* Sits outside the button so it centres on the whole card
+                        rather than the name strip alone. */}
+                    {company.logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={company.logoUrl} alt="" className="ops-row-logo" />
+                    ) : null}
                     <div className="ops-row-tools">
                       {company.slug === "ronin" ? (
                         <span className="ops-meta">SEED BOARD — CANNOT DELETE</span>
@@ -963,8 +985,8 @@ function AdminWorkbench({
                       Deletes this tenant, its shipments, and its audit log. Assigned users are revoked.
                     </p>
                     <BusyControl
-                      active={busy?.key === "delete" && busy.id === selected.id}
-                      label={busy?.key === "delete" ? busy.label : "Deleting company"}
+                      active={busy?.key === "delete-company" && busy.id === selected.id}
+                      label={busy?.key === "delete-company" ? busy.label : "Deleting company"}
                     >
                       <button
                         className="danger"
@@ -972,7 +994,7 @@ function AdminWorkbench({
                         disabled={Boolean(busy)}
                         onClick={() => onDeleteCompany(selected.id)}
                       >
-                        {busy?.key === "delete" && busy.id === selected.id
+                        {busy?.key === "delete-company" && busy.id === selected.id
                           ? busy.label
                           : "Delete company"}
                       </button>
@@ -1056,7 +1078,12 @@ function AdminWorkbench({
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp,image/svg+xml"
-                    onChange={(event) => onLogo(selected.id, event.target.files?.[0])}
+                    onChange={(event) => {
+                      void onLogo(selected.id, event.target.files?.[0]);
+                      // Cleared so cancelling the preview and picking the same
+                      // file again still counts as a change.
+                      event.target.value = "";
+                    }}
                   />
                 </label>
                 {selected.logoUrl ? (
@@ -1256,6 +1283,15 @@ function AdminWorkbench({
         busyLabel={busy?.key === "create" ? busy.label : "CREATING COMPANY"}
         onClose={() => setCreating(false)}
         onSubmit={(draft) => void onCreate(draft)}
+      />
+      {/* The sign-in gate's loader, reused: adding or removing a board rebuilds
+          the whole console, so it owns the screen while it runs. The create
+          dialog carries its own copy, because a modal sits in the top layer
+          above anything a z-indexed veil out here can reach. */}
+      <ActionProgress
+        overlay
+        active={(busy?.key === "create" && !creating) || busy?.key === "delete-company"}
+        label={busy?.label ?? ""}
       />
     </>
   );

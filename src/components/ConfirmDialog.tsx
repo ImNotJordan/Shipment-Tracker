@@ -19,6 +19,9 @@ export type ConfirmOptions = {
   danger?: boolean;
   previewSrc?: string;
   previewLabel?: string;
+  /* A PDF gets an iframe, artwork gets an <img>: an image in an iframe
+     scrolls and sits top-left instead of showing the whole mark. */
+  previewKind?: "pdf" | "image";
 };
 
 type Pending = ConfirmOptions & { resolve: (ok: boolean) => void };
@@ -89,7 +92,12 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             {pending.previewSrc ? (
               <div className="confirm-preview">
                 <p className="confirm-preview-label">{pending.previewLabel ?? "PDF"}</p>
-                <iframe title={pending.previewLabel ?? "PDF preview"} src={pending.previewSrc} />
+                {pending.previewKind === "image" ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={pending.previewSrc} alt="" />
+                ) : (
+                  <iframe title={pending.previewLabel ?? "PDF preview"} src={pending.previewSrc} />
+                )}
               </div>
             ) : null}
           </div>

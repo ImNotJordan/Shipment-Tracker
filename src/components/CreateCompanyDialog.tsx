@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Plus } from "lucide-react";
-import { BusyControl } from "./ActionProgress";
+import { ActionProgress, BusyControl } from "./ActionProgress";
 import { FALLBACK, paletteFromFile, type Palette } from "@/lib/logo-palette";
 
 export type NewCompany = {
@@ -153,6 +153,9 @@ export function CreateCompanyDialog({
           </button>
         </BusyControl>
       </form>
+      {/* Mounted inside the dialog on purpose: a modal sits in the browser's
+          top layer, so the console's own veil cannot reach over it. */}
+      <ActionProgress overlay active={busy} label={busyLabel} />
     </dialog>
   );
 }

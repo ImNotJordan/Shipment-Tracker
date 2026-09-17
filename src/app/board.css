@@ -1960,6 +1960,7 @@ a.primary {
 /* The row and its tools are one entry, so the card is drawn on the <li> and
    the button inside it stays transparent. */
 .ops-rows > li {
+  position: relative;
   border: 1px solid transparent;
   border-radius: var(--r-panel);
   margin-bottom: 6px;
@@ -2006,6 +2007,13 @@ a.primary {
 .ops-row > .ship-status {
   grid-column: 2;
   grid-row: 1 / span 2;
+}
+
+/* Pinned rather than auto-placed: a company row that carries its mark outside
+   the button has no third child, and the lane would flow into column 2. */
+.ops-row > .ship-num,
+.ops-row > .ship-lane {
+  grid-column: 1;
 }
 
 .ops-row:focus-visible {
@@ -2162,6 +2170,16 @@ button.ops-open {
   height: 100%;
   border: 0;
   background: var(--ink);
+}
+
+/* Logo art is shown whole on the board's own ground, so what the preview
+   shows is what the board will render. */
+.confirm-preview img {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 24px;
+  object-fit: contain;
 }
 
 .ops-pdf .panel-title {
@@ -2339,6 +2357,27 @@ button.ops-open {
   border: 1px solid var(--seam);
   border-radius: var(--r-ctl);
   object-fit: contain;
+}
+
+/* The board list carries the real mark in the slot that used to read LOGO.
+   Anchored to the card rather than the name strip, so it keeps the card's own
+   middle however tall the tools below it grow. */
+.ops-row-logo {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 34px;
+  width: auto;
+  max-width: 110px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* The mark keeps its own lane, so a long name never slides under it. */
+.ops-rows > li:has(.ops-row-logo) .ops-row,
+.ops-rows > li:has(.ops-row-logo) .ops-row-tools {
+  padding-right: 138px;
 }
 
 .ops-notify .busy-control .ops-key {
