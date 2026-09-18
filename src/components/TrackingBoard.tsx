@@ -9,7 +9,9 @@ import { RouteMap } from "./RouteMap";
 import { useRouter } from "next/navigation";
 import { homePath } from "@/lib/access";
 import type { PublicBoard, PublicShipment, SessionUser } from "@/lib/types";
-import { ThemeToggle } from "./ThemeToggle";
+import { ThemeToggle, useTheme } from "./ThemeToggle";
+import { ActionProgress } from "./ActionProgress";
+import { mapPalette } from "@/lib/logo-palette";
 import { ConfirmProvider, closeViewAsTab, useConfirm } from "./ConfirmDialog";
 
 function formatTracking(value: string) {
@@ -97,6 +99,12 @@ function TrackingBoardInner({
   const [signingOut, setSigningOut] = useState(false);
   const detailRef = useRef<HTMLElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
+  // The board's own colours, rebuilt to read on whichever map is underneath.
+  const night = useTheme() !== "light";
+  const pins = useMemo(
+    () => mapPalette(board.company.accent, board.company.background, night),
+    [board.company.accent, board.company.background, night],
+  );
   const onMapReady = useCallback((map: google.maps.Map | null) => {
     mapRef.current = map;
   }, []);
@@ -210,7 +218,15 @@ function TrackingBoardInner({
   return (
     <main
       className={`board${preview ? " is-viewing" : ""}${embedded ? " is-embedded" : ""}`}
-      style={brandVars(board.company)}
+      style={{
+        ...brandVars(board.company),
+        /* One palette for the map, its legend and the travel history, so a
+           numbered step in the list is the colour of the pin it stands for. */
+        ["--map-origin" as string]: pins.origin.fill,
+        ["--map-history" as string]: pins.history.fill,
+        ["--map-history-ink" as string]: pins.history.ink,
+        ["--map-dest" as string]: pins.dest.fill,
+      }}
     >
       {embedded ? null : (
       <header className="ident" data-region="ident-bar">
@@ -257,11 +273,6 @@ function TrackingBoardInner({
                 </button>
             ) : null}
           </div>
-          {signingOut ? (
-            <span className="sr-only" role="status">
-              Signing out
-            </span>
-          ) : null}
         </header>
       )}
 
@@ -326,6 +337,7 @@ function TrackingBoardInner({
         <div className="map-stage" data-region="map-east">
           <RouteMap
             shipment={selected}
+            pins={pins}
             apiKey={mapsKey}
             focusEventId={focusEventId}
             onMapReady={onMapReady}
@@ -443,6 +455,8 @@ function TrackingBoardInner({
           )}
         </section>
       </aside>
+      {/* Leaving gets the same loader as arriving. */}
+      <ActionProgress overlay active={signingOut} label="SIGNING OUT" />
     </main>
   );
 }

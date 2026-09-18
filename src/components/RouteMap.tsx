@@ -2,16 +2,26 @@
 
 import { useEffect } from "react";
 import { APIProvider, Map as GoogleMap, useMap } from "@vis.gl/react-google-maps";
+import { MAP_LAND, type MapPalette } from "@/lib/logo-palette";
+import { useTheme } from "./ThemeToggle";
 import type { PublicShipment, ScanEvent } from "@/lib/types";
 
-const DARK_STYLES: google.maps.MapTypeStyle[] = [
-  { elementType: "geometry", stylers: [{ color: "#1a2224" }] },
+/* The base geometry, the landscape over it and the map div behind both are ONE
+   colour on purpose. Google serves this map as raster tiles, and the fills on a
+   tile stop a hair short of its edge; anywhere those three disagree, the layer
+   underneath shows through the join as a grid of pale lines across the map.
+   It is also what every overlay's contrast is measured against, so it is
+   defined beside that maths rather than here. */
+const NIGHT_LAND = MAP_LAND.night;
+
+const NIGHT_TILES: google.maps.MapTypeStyle[] = [
+  { elementType: "geometry", stylers: [{ color: NIGHT_LAND }] },
   { elementType: "labels.text.fill", stylers: [{ color: "#9aa0a3" }] },
   { elementType: "labels.text.stroke", stylers: [{ color: "#10181a" }] },
   { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#2e333a" }] },
   { featureType: "administrative.country", elementType: "geometry.stroke", stylers: [{ color: "#3a4248" }] },
   { featureType: "administrative.province", elementType: "geometry.stroke", stylers: [{ color: "#2e333a" }] },
-  { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#151c1e" }] },
+  { featureType: "landscape", elementType: "geometry", stylers: [{ color: NIGHT_LAND }] },
   { featureType: "poi", stylers: [{ visibility: "off" }] },
   { featureType: "transit", stylers: [{ visibility: "off" }] },
   { featureType: "road", elementType: "geometry", stylers: [{ color: "#222b2e" }] },
@@ -23,6 +33,41 @@ const DARK_STYLES: google.maps.MapTypeStyle[] = [
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#0c1214" }] },
   { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3a4248" }] },
 ];
+
+/* The same list in daylight, entry for entry, so the two stay comparable when
+   either is tuned. */
+const DAY_LAND = MAP_LAND.day;
+
+const DAY_TILES: google.maps.MapTypeStyle[] = [
+  { elementType: "geometry", stylers: [{ color: DAY_LAND }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#586160" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#ffffff" }] },
+  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#c3caca" }] },
+  { featureType: "administrative.country", elementType: "geometry.stroke", stylers: [{ color: "#a9b2b2" }] },
+  { featureType: "administrative.province", elementType: "geometry.stroke", stylers: [{ color: "#c3caca" }] },
+  { featureType: "landscape", elementType: "geometry", stylers: [{ color: DAY_LAND }] },
+  { featureType: "poi", stylers: [{ visibility: "off" }] },
+  { featureType: "transit", stylers: [{ visibility: "off" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#dfe3e3" }] },
+  { featureType: "road", elementType: "labels", stylers: [{ visibility: "off" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#fbfcfc" }] },
+  { featureType: "road.local", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#d4e2e8" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#7d919a" }] },
+];
+
+/** The map itself. What is drawn ON it comes from the board's own colours, via
+ *  MapPalette — which is why it is a separate thing: the tiles belong to the
+ *  theme, the journey belongs to the company. */
+type MapSkin = {
+  tiles: google.maps.MapTypeStyle[];
+  land: string;
+};
+
+const NIGHT: MapSkin = { tiles: NIGHT_TILES, land: NIGHT_LAND };
+const DAY: MapSkin = { tiles: DAY_TILES, land: DAY_LAND };
 
 type LatLng = { lat: number; lng: number };
 type MapPin = {
@@ -102,13 +147,13 @@ function offsetOverlaps(pins: MapPin[]): LatLng[] {
   });
 }
 
-function pinIcon(fill: string, scale: number): google.maps.Symbol {
+function pinIcon(fill: string, scale: number, stroke: string): google.maps.Symbol {
   return {
     path: google.maps.SymbolPath.CIRCLE,
     scale,
     fillColor: fill,
     fillOpacity: 1,
-    strokeColor: "#10181a",
+    strokeColor: stroke,
     strokeWeight: 2,
   };
 }
@@ -183,10 +228,12 @@ async function routeAlongRoads(points: LatLng[]): Promise<RoutedPath> {
 
 function RouteLayer({
   shipment,
+  pins: ink,
   focusEventId,
   onMapReady,
 }: {
   shipment: PublicShipment | null;
+  pins: MapPalette;
   focusEventId?: string | null;
   onMapReady?: (map: google.maps.Map | null) => void;
 }) {
@@ -279,7 +326,7 @@ function RouteLayer({
           new google.maps.Polyline({
             map: liveMap,
             path: routed.line,
-            strokeColor: "#E3B341",
+            strokeColor: ink.route,
             strokeOpacity: 1,
             strokeWeight: 4,
             geodesic: false,
@@ -296,6 +343,8 @@ function RouteLayer({
 
       for (const [index, pin] of pins.entries()) {
         const focused = Boolean(focusEventId && pin.id === focusEventId);
+        const stop =
+          pin.kind === "origin" ? ink.origin : pin.kind === "destination" ? ink.dest : ink.history;
         const marker = new google.maps.Marker({
           map: liveMap,
           position: display[index],
@@ -303,14 +352,15 @@ function RouteLayer({
           zIndex: focused ? 8 : pin.kind === "scan" ? 6 : 4,
           label: {
             text: pin.label,
-            color: "#10181a",
-            fontFamily: "Iosevka, ui-monospace, monospace",
+            color: stop.ink,
+            fontFamily: "JetBrains Mono, ui-monospace, monospace",
             fontWeight: "700",
             fontSize: "11px",
           },
           icon: pinIcon(
-            pin.kind === "origin" ? "#eff0f0" : "#E3B341",
+            stop.fill,
             focused ? 12 : pin.kind === "scan" ? 9 : 11,
+            stop.ink,
           ),
         });
         listeners.push(
@@ -356,22 +406,27 @@ function RouteLayer({
       listeners.forEach((item) => item.remove());
       overlays.forEach((item) => item.setMap(null));
     };
-  }, [map, shipment, focusEventId]);
+  }, [map, shipment, ink, focusEventId]);
 
   return null;
 }
 
 export function RouteMap({
   shipment,
+  pins,
   apiKey,
   focusEventId,
   onMapReady,
 }: {
   shipment: PublicShipment | null;
+  /** The board's colours, rebuilt for the map. */
+  pins: MapPalette;
   apiKey?: string;
   focusEventId?: string | null;
   onMapReady?: (map: google.maps.Map | null) => void;
 }) {
+  const skin = useTheme() === "light" ? DAY : NIGHT;
+
   if (!apiKey) {
     return (
       <div className="map-missing">
@@ -387,15 +442,24 @@ export function RouteMap({
         defaultZoom={4}
         gestureHandling="greedy"
         disableDefaultUI
-        styles={DARK_STYLES}
-        backgroundColor="#10181a"
+        styles={skin.tiles}
+        // ponytail: backgroundColor is a create-only Maps option, so toggling
+        // mid-session leaves this one stale until the map remounts. It shows
+        // only in the moment before tiles paint. Upgrade path is keying the
+        // map on the theme, which costs the viewer their pan and zoom.
+        backgroundColor={skin.land}
         style={{ width: "100%", height: "100%" }}
         keyboardShortcuts={false}
         clickableIcons={false}
         streetViewControl={false}
         fullscreenControl={false}
       >
-        <RouteLayer shipment={shipment} focusEventId={focusEventId} onMapReady={onMapReady} />
+        <RouteLayer
+          shipment={shipment}
+          pins={pins}
+          focusEventId={focusEventId}
+          onMapReady={onMapReady}
+        />
       </GoogleMap>
     </APIProvider>
   );

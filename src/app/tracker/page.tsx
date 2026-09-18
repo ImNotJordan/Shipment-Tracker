@@ -3,6 +3,7 @@ import { readSessionContext } from "@/lib/session";
 import { listAudits, listShipments, visibleCompanies } from "@/lib/store";
 import { TrackerConsole } from "@/components/TrackerConsole";
 import { homePath } from "@/lib/access";
+import { SEED_SLUG } from "@/lib/types";
 
 export default async function TrackerPage({
   searchParams,
@@ -21,7 +22,7 @@ export default async function TrackerPage({
     // stops the param reaching past what this session is allowed.
     companies.find((company) => company.id === asked) ??
     companies.find((company) => company.id === context.user.companyId) ??
-    companies.find((company) => company.slug === "ronin") ??
+    companies.find((company) => company.slug === SEED_SLUG) ??
     companies[0];
   const companyId = selected?.id ?? "";
   const [shipments, audits] = companyId

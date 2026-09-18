@@ -7,6 +7,7 @@ import { LogOut } from "lucide-react";
 import type { SessionUser } from "@/lib/types";
 import { closeViewAsTab, openViewAsTab, useConfirm } from "./ConfirmDialog";
 import { ThemeToggle } from "./ThemeToggle";
+import { ActionProgress } from "./ActionProgress";
 import { BrandMark } from "./BrandMark";
 import { brandVars } from "@/lib/brand";
 
@@ -126,11 +127,6 @@ export function OpsChrome({
                 <span className="pip" aria-hidden />
               </p>
             </div>
-            {signingOut ? (
-              <span className="sr-only" role="status">
-                Signing out
-              </span>
-            ) : null}
           </header>
           <div className="ops-bar">
             <div className="ops-bar-left">{bar}</div>
@@ -139,12 +135,11 @@ export function OpsChrome({
                 {user.email}
                 <em>{user.role}</em>
               </span>
-              {user.role === "admin" ? (
-                onAdmin ? (
-                  <Link href="/admin" aria-current="page">
-                    Admin
-                  </Link>
-                ) : viewingAsTracker ? (
+              {/* Nowhere to go but here: the station is already named in the
+                  ident and again on the badge to the left, so a link back to
+                  the page you are on is the third copy and reads as a repeat. */}
+              {user.role === "admin" && !onAdmin ? (
+                viewingAsTracker ? (
                   <button type="button" onClick={() => void closePreview()}>
                     Close preview
                   </button>
@@ -152,29 +147,21 @@ export function OpsChrome({
                   <Link href="/admin">Admin</Link>
                 )
               ) : null}
-              {user.role === "admin" && !nav ? (
-                onTracker ? (
-                  <Link href="/tracker" aria-current="page">
-                    Tracker
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      void viewAs(
-                        "/tracker",
-                        "VIEW AS TRACKER",
-                        "Opens the tracker console in a new tab. Close preview there to return here.",
-                      )
-                    }
-                  >
-                    View as Tracker
-                  </button>
-                )
-              ) : user.role === "tracker" ? (
-                <Link href="/tracker" aria-current={onTracker ? "page" : undefined}>
-                  Tracker
-                </Link>
+              {user.role === "admin" && !nav && !onTracker ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    void viewAs(
+                      "/tracker",
+                      "VIEW AS TRACKER",
+                      "Opens the tracker console in a new tab. Close preview there to return here.",
+                    )
+                  }
+                >
+                  View as Tracker
+                </button>
+              ) : user.role === "tracker" && !onTracker ? (
+                <Link href="/tracker">Tracker</Link>
               ) : null}
               {clientHref && !nav ? (
                 <button
@@ -204,6 +191,8 @@ export function OpsChrome({
         </>
       )}
       {children}
+      {/* Leaving gets the same loader as arriving. */}
+      <ActionProgress overlay active={signingOut} label="SIGNING OUT" />
     </main>
   );
 }

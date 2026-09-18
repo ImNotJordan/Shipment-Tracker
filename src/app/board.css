@@ -165,29 +165,37 @@
 }
 
 /* Mono earns its place where characters must be told apart (tracking numbers,
-   emails, passwords) or where columns must line up (times, facts, rows). Inter
-   has proportional figures by default, so tabular-nums is not optional here. */
+   emails, passwords) or where columns must line up (times, facts, rows). */
 .wordmark,
 .last-fetch,
 .ship-num,
 .ship-status,
 .fact,
+.ops-row,
+.ops-row-static,
+input,
+textarea,
+select {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+
+/* And nowhere else. A monospace forces 'i' and 'm' to the same width, which is
+   the point on a tracking number and a cost on a sentence: readers match word
+   SHAPES, and every word in a monospace is the shape of a rectangle. These are
+   sentences, place names, labels and buttons, so they read in Inter — and keep
+   tabular figures, because a column of times in them still has to line up.
+   Inter has proportional figures by default, so that is not optional. */
 .hist-row,
 .hist-copy,
 .hist-place,
-.ops-row,
-.ops-row-static,
 .gate-aside h3,
 .gate label,
 .gate-field > label,
 .gate-reveal,
 .gate-abort,
 .gate-veil-label,
-.primary,
-input,
-textarea,
-select {
-  font-family: var(--font-data);
+.primary {
   font-variant-numeric: tabular-nums;
 }
 
@@ -307,20 +315,20 @@ select {
 }
 
 .live-board-label {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--ivory);
 }
 
 .last-fetch {
-  font-size: 15px;
+  font-size: 17px;
   letter-spacing: 0.04em;
 }
 
 .panel-title,
 .shipments-head {
-  font-size: 13px;
+  font-size: 15px;
   letter-spacing: 0.08em;
   color: var(--ivory-dim);
 }
@@ -335,9 +343,9 @@ select {
 .panel-title,
 .shipments-head {
   margin: 0;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.16em;
   color: var(--ivory-dim);
   text-transform: uppercase;
 }
@@ -431,14 +439,14 @@ select {
 }
 
 .ship-num {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.12em;
 }
 
 .ship-lane,
 .ship-status {
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--ivory-dim);
@@ -468,7 +476,7 @@ select {
   padding: 10px 16px;
   border-top: 1px solid var(--seam);
   color: var(--ivory-dim);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -555,7 +563,7 @@ select {
   gap: 16px;
   padding: 10px 16px;
   border-top: 1px solid var(--seam);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -578,16 +586,16 @@ select {
   box-shadow: 0 0 0 1px var(--seam);
 }
 
-.legend-origin { background: #eff0f0; }
-.legend-scan { background: var(--amber); }
+.legend-origin { background: var(--map-origin, #eff0f0); }
+.legend-scan { background: var(--map-history, var(--amber)); }
 .legend-dest {
-  background: var(--amber);
+  background: var(--map-dest, var(--amber));
   width: 12px;
   height: 12px;
 }
 
 .gm-style .gm-style-iw-c {
-  background: #10181a;
+  background: var(--panel);
   color: var(--ivory);
   border: 1px solid var(--seam);
   border-radius: 0;
@@ -601,7 +609,7 @@ select {
 
 .gm-style .gm-style-iw-tc::after,
 .gm-style .gm-style-iw-t::after {
-  background: #10181a;
+  background: var(--panel);
 }
 
 .map-bubble {
@@ -613,7 +621,7 @@ select {
 }
 
 .map-bubble strong {
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -664,14 +672,14 @@ select {
 
 .fact dt {
   color: var(--ivory-dim);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.16em;
 }
 
 .fact dd {
   margin: 0;
   text-align: right;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -752,11 +760,11 @@ select {
   height: 20px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--ivory-dim);
+  border: 1px solid transparent;
   border-radius: 50%;
-  background: var(--ivory);
-  color: var(--ink);
-  font-size: 10px;
+  background: var(--map-history, var(--ivory));
+  color: var(--map-history-ink, var(--ink));
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
 }
@@ -773,7 +781,7 @@ select {
 
 .history-list p {
   margin: 0;
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.45;
 }
 
@@ -812,7 +820,7 @@ select {
 
 .ops-who {
   color: var(--ivory-dim);
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.08em;
   margin-right: 8px;
 }
@@ -970,9 +978,9 @@ textarea:disabled,
 
 .gate-veil-label {
   margin: 0;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.16em;
   color: var(--ivory-dim);
 }
 
@@ -1204,7 +1212,7 @@ textarea:disabled,
   padding: 10px 16px;
   border-bottom: 1px solid var(--seam);
   color: var(--ivory-dim);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.08em;
 }
@@ -1639,9 +1647,9 @@ textarea:disabled,
 
 .gate-card h2 {
   margin: 0 0 16px;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.15em;
 }
 
 .gate-reveal,
@@ -1650,7 +1658,7 @@ textarea:disabled,
   border: 0;
   padding: 0;
   color: var(--ivory-dim);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.16em;
 }
@@ -1692,8 +1700,8 @@ a.primary {
 
 .ops-form h2 {
   margin: 0 0 16px;
-  font-size: 16px;
-  letter-spacing: 0.18em;
+  font-size: 18px;
+  letter-spacing: 0.15em;
 }
 
 .ops-form p {
@@ -1708,7 +1716,7 @@ a.primary {
   display: grid;
   gap: 8px;
   margin-bottom: 14px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.16em;
   color: var(--ivory-dim);
@@ -1774,7 +1782,7 @@ a.primary {
 /* One field per number: grouped on screen, raw digits underneath. */
 .ops-field-label {
   margin: 0 0 8px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.16em;
   color: var(--ivory-dim);
@@ -1789,7 +1797,7 @@ a.primary {
 .ops-numbers input {
   width: 100%;
   padding: 10px 14px;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
   letter-spacing: 0.14em;
 }
@@ -1838,7 +1846,7 @@ a.primary {
 
 .ops-chips > .tone-bad {
   margin: 0;
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .ops-chip-list {
@@ -1859,7 +1867,7 @@ a.primary {
   border-radius: 6px;
   background: var(--ink);
   font-family: var(--font-data);
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.04em;
   color: var(--ivory);
 }
@@ -1964,14 +1972,14 @@ a.primary {
   border-top: 1px solid var(--seam);
   display: grid;
   gap: 14px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .gate-aside h3 {
   margin: 0 0 6px;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.16em;
   color: var(--ivory-dim);
 }
 
@@ -2007,9 +2015,9 @@ a.primary {
 }
 
 .ops-toast-kicker {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.15em;
   color: var(--ivory-dim);
 }
 
@@ -2118,6 +2126,225 @@ a.primary {
   cursor: default;
 }
 
+/* The directory, read as a table: one set of columns shared by the heading and
+   every row, so a value always sits under the word for it. The controls live in
+   the card on the right, which is where an account is described when it is
+   invited too. */
+/* The heading and the list are one stack inside the panel's single slot: the
+   panel is a two-row grid, and handing it a third child stretched the heading
+   down the middle of an empty column. */
+.user-table {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.user-head,
+.user-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px minmax(100px, 168px);
+  align-items: center;
+  gap: 16px;
+  padding: 11px 16px 11px 22px;
+}
+
+.user-row {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.user-head {
+  padding-top: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--seam);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+}
+
+.ops-rows > li.is-editing {
+  background: color-mix(in oklab, var(--brand) var(--tint-active), var(--ink-2));
+  border-color: var(--seam);
+}
+
+/* What the account is, then the three things an admin changes about it. Name
+   and email are stated, never typed: the address is the Firebase identity and
+   renaming it here would leave the two out of step. */
+.user-card {
+  display: grid;
+  gap: 14px;
+  padding: 2px 16px 14px 22px;
+}
+
+.user-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px 16px;
+  margin: 0;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--seam);
+}
+
+.user-facts dt {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--ivory-dim);
+}
+
+.user-facts dd {
+  margin: 6px 0 0;
+  font-family: var(--font-data);
+  font-size: 15px;
+  color: var(--ivory);
+  overflow-wrap: anywhere;
+}
+
+.user-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  align-items: end;
+}
+
+.user-fields label {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: var(--ivory-dim);
+}
+
+.user-static {
+  padding: 10px 12px;
+  border: 1px dashed var(--seam);
+  border-radius: var(--r-ctl);
+  font-family: var(--font-data);
+  font-size: 15px;
+  letter-spacing: 0;
+  color: var(--ivory-dim);
+}
+
+.user-card-acts {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.user-fields input,
+.user-fields select {
+  width: 100%;
+  padding: 10px 12px;
+}
+
+.user-id {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.user-id b {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ivory);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-id span {
+  font-family: var(--font-data);
+  font-size: 13px;
+  color: var(--ivory-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* What the account may do, said once, in colour rather than in a dropdown. */
+.role-pill {
+  justify-self: start;
+  padding: 3px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ivory-dim);
+  background: color-mix(in oklab, var(--ivory) 8%, transparent);
+}
+
+.role-pill.is-admin {
+  color: var(--amber);
+  border-color: color-mix(in oklab, var(--amber) 38%, transparent);
+  background: color-mix(in oklab, var(--amber) 14%, transparent);
+}
+
+.role-pill.is-tracker {
+  color: var(--live);
+  border-color: color-mix(in oklab, var(--live) 38%, transparent);
+  background: color-mix(in oklab, var(--live) 14%, transparent);
+}
+
+.is-revoked .role-pill {
+  color: var(--danger);
+  border-color: color-mix(in oklab, var(--danger) 38%, transparent);
+  background: color-mix(in oklab, var(--danger) 12%, transparent);
+}
+
+.user-scope {
+  font-family: var(--font-data);
+  font-size: 13px;
+  color: var(--ivory-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A destructive action reads as a word, not as a red slab. */
+.link-danger {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-data);
+  font-size: 13px;
+  color: var(--danger);
+  cursor: pointer;
+}
+
+.link-danger:hover:not(:disabled),
+.link-danger:focus-visible {
+  text-decoration: underline;
+}
+
+.link-danger:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+  .user-head {
+    display: none;
+  }
+
+  .user-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 10px;
+  }
+
+  .user-scope {
+    grid-column: 1 / -1;
+  }
+}
+
 .ops-row-tools {
   display: flex;
   flex-wrap: wrap;
@@ -2142,7 +2369,7 @@ a.primary {
 }
 
 .ops-meta {
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.16em;
   color: var(--ivory-dim);
 }
@@ -2151,7 +2378,7 @@ a.primary {
   margin-left: auto;
   color: var(--ivory-dim);
   text-decoration: none;
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.16em;
 }
 
@@ -2266,7 +2493,7 @@ button.ops-open {
   border: 1px solid var(--seam);
   border-radius: var(--r-ctl);
   font-family: var(--font-data);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.08em;
   color: var(--ivory-dim);
 }
@@ -2282,8 +2509,8 @@ button.ops-open {
   margin: 0;
   padding: 10px 14px;
   border-bottom: 1px solid var(--seam);
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-size: 12px;
+  letter-spacing: 0.15em;
   color: var(--ivory-dim);
 }
 
@@ -2319,8 +2546,8 @@ button.ops-open {
 
 .confirm-card h2 {
   margin: 0 0 12px;
-  font-size: 14px;
-  letter-spacing: 0.18em;
+  font-size: 16px;
+  letter-spacing: 0.15em;
 }
 
 .confirm-card p {
@@ -2423,7 +2650,7 @@ button.ops-open {
   border: 1px solid var(--danger);
   border-radius: var(--r-pill);
   color: var(--danger);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.16em;
 }
@@ -2432,7 +2659,7 @@ button.ops-open {
   display: grid;
   gap: 8px;
   margin: 0;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.16em;
   color: var(--ivory-dim);
@@ -2451,7 +2678,7 @@ button.ops-open {
   border-radius: var(--r-ctl);
   background: transparent;
   color: var(--ivory-dim);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .ops-file input[type="file"]::file-selector-button {
@@ -2484,22 +2711,41 @@ button.ops-open {
 /* The board list carries the real mark in the slot that used to read LOGO.
    Anchored to the card rather than the name strip, so it keeps the card's own
    middle however tall the tools below it grow. */
+/* Every mark gets the SAME square and is contained inside it, so artwork of
+   any shape takes exactly the same room and none dwarfs the next. Sizing the
+   box rather than the image is what makes that true for logos already uploaded
+   as well as new ones, without stretching any of them. */
+.ops-rows {
+  --row-logo: 56px;
+  /* The square plus even air either side, which is what centres it. */
+  --row-logo-lane: 96px;
+  /* Most logos are supplied as artwork on a white card, and that card is part
+     of the file: one is 4:3, the next is square, so contained in the same box
+     they still read as different sizes. The plate IS that card, drawn at one
+     size for every board, so each file's own card merges into it. */
+  --row-logo-plate: #ffffff;
+}
+
 .ops-row-logo {
   position: absolute;
-  right: 16px;
+  right: calc((var(--row-logo-lane) - var(--row-logo)) / 2);
   top: 50%;
   transform: translateY(-50%);
-  height: 34px;
-  width: auto;
-  max-width: 110px;
+  box-sizing: border-box;
+  width: var(--row-logo);
+  height: var(--row-logo);
+  padding: 5px;
+  border-radius: var(--r-ctl);
+  background: var(--row-logo-plate);
   object-fit: contain;
   pointer-events: none;
 }
 
-/* The mark keeps its own lane, so a long name never slides under it. */
+/* The mark keeps its own lane, so a long name never slides under it. Measured
+   off the box above, so the two cannot drift apart. */
 .ops-rows > li:has(.ops-row-logo) .ops-row,
 .ops-rows > li:has(.ops-row-logo) .ops-row-tools {
-  padding-right: 138px;
+  padding-right: var(--row-logo-lane);
 }
 
 .ops-notify .busy-control .ops-key {
@@ -2517,7 +2763,7 @@ button.ops-open {
 
 .ops-notify h3 {
   margin: 0;
-  font-size: 11px;
+  font-size: 13px;
   letter-spacing: 0.16em;
   color: var(--ivory-dim);
 }
@@ -2542,7 +2788,7 @@ button.ops-open {
   align-items: center;
   gap: 8px;
   margin: 0;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.16em;
   color: var(--ivory-dim);
@@ -2554,7 +2800,7 @@ button.ops-open {
   accent-color: var(--amber);
 }
 
-.is-revoked .ops-row {
+.is-revoked .user-id b {
   color: var(--ivory-dim);
 }
 
@@ -2619,7 +2865,7 @@ button.ops-open {
   border: 0;
   border-radius: var(--r-pill);
   color: var(--ivory-dim);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.16em;
 }
@@ -2700,7 +2946,7 @@ button.ops-open {
   background: transparent;
   border: 0;
   color: var(--ivory-dim);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.16em;
 }
@@ -2866,7 +3112,7 @@ button.ops-open {
   background: transparent;
   border: 0;
   color: var(--ivory-dim);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.16em;
 }
@@ -2889,8 +3135,8 @@ button.ops-open {
   border: 1px solid var(--seam);
   border-radius: var(--r-panel);
   color: var(--ivory-dim);
-  font-size: 10px;
-  letter-spacing: 0.22em;
+  font-size: 12px;
+  letter-spacing: 0.16em;
 }
 
 .ops-logo-well img {
@@ -2920,7 +3166,7 @@ button.ops-open {
   grid-column: 1 / -1;
   padding: 0;
   margin-bottom: 8px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.16em;
   color: var(--ivory-dim);
@@ -2937,7 +3183,7 @@ button.ops-open {
   border-radius: var(--r-ctl);
   position: relative;
   color: var(--ivory-dim);
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.12em;
   cursor: pointer;
   transition:
@@ -2995,7 +3241,7 @@ button.ops-open {
 
 @media (max-width: 980px) {
   .last-fetch {
-    font-size: 11px;
+    font-size: 13px;
     max-width: 42vw;
     text-align: right;
   }
@@ -3039,7 +3285,7 @@ button.ops-open {
     min-height: 42vh;
   }
   .ident-right { flex-wrap: wrap; justify-content: flex-end; }
-  .ident-owner { font-size: 12px; }
+  .ident-owner { font-size: 14px; }
   .gate-stage {
     --gate-card: 0px;
     --gate-gap: 16px;

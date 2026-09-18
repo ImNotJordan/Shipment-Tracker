@@ -22,8 +22,10 @@ export async function POST(
     if (!(file instanceof File) || !file.size) {
       return NextResponse.json({ error: "Choose a logo file." }, { status: 400 });
     }
-    if (file.size > 1_500_000) {
-      return NextResponse.json({ error: "Logo must be under 1.5 MB." }, { status: 400 });
+    // Storage takes whatever it is given; this cap is about what every client
+    // then downloads on every board load, for a mark rendered at 56px.
+    if (file.size > 5_000_000) {
+      return NextResponse.json({ error: "Logo must be under 5 MB." }, { status: 400 });
     }
     const ext = TYPES[file.type];
     if (!ext) {
@@ -38,11 +40,15 @@ export async function POST(
         idToken,
       );
     } catch {
-      if (file.size > 350_000) {
+      /* No Storage bucket: the file is kept inside the company document as a
+         data URI instead. Base64 costs a third more, and a Firestore document
+         is capped at 1 MiB whatever else is in it — which is the real limit
+         here, and the one that cannot simply be raised. */
+      if (file.size > 600_000) {
         return NextResponse.json(
           {
             error:
-              "Enable Firebase Storage for larger logos, or upload a file under 350 KB.",
+              "Enable Firebase Storage for logos over 600 KB — without it the file has to fit inside the company record.",
           },
           { status: 400 },
         );

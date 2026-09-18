@@ -6,6 +6,26 @@ import { Moon, Sun } from "lucide-react";
 type Theme = "dark" | "light";
 const KEY = "live-board-theme";
 
+/** The theme the page is actually wearing, for anything that cannot be styled
+ *  in CSS — Google's map tiles are painted from a styles array, not a
+ *  stylesheet, so they have to be told.
+ *
+ *  The attribute on <html> is the one source of truth: the inline script in the
+ *  layout sets it before paint and the toggle rewrites it. Watching it means a
+ *  reader is right however the theme was set, including on first load. */
+export function useTheme(): Theme {
+  const [theme, setTheme] = useState<Theme>("dark");
+  useEffect(() => {
+    const read = () =>
+      setTheme(document.documentElement.dataset.theme === "light" ? "light" : "dark");
+    read();
+    const watch = new MutationObserver(read);
+    watch.observe(document.documentElement, { attributeFilter: ["data-theme"] });
+    return () => watch.disconnect();
+  }, []);
+  return theme;
+}
+
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("dark");
 

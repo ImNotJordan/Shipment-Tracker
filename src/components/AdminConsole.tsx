@@ -6,8 +6,6 @@ import { OpsChrome } from "./OpsChrome";
 import { CreateCompanyDialog, type NewCompany } from "./CreateCompanyDialog";
 import {
   FALLBACK,
-  matchingAccents,
-  matchingBackgrounds,
   groundSwatch,
   paletteFromFile,
   paletteFromUrl,
@@ -28,7 +26,7 @@ import {
 } from "@/lib/phones";
 import { ChipInput } from "./ChipInput";
 import { OpsToast, useOpsToast } from "./OpsToast";
-import type { CompanyRecord, Role, SessionUser, UserRecord } from "@/lib/types";
+import { SEED_SLUG, type CompanyRecord, type Role, type SessionUser, type UserRecord } from "@/lib/types";
 
 type NotifyDraft = { enabled: boolean; cc: string; ccPhones: string };
 
@@ -55,6 +53,9 @@ function draftFor(row: UserRecord, edits: Record<string, UserEdit>): UserEdit {
     }
   );
 }
+
+const rowClass = (revoked: boolean, open: boolean) =>
+  [revoked ? "is-revoked" : "", open ? "is-editing" : ""].filter(Boolean).join(" ") || undefined;
 
 function draftDirty(row: UserRecord, edit: UserEdit) {
   const nextPhone = edit.role === "client" ? normalizePhone(edit.phone) : null;
@@ -149,6 +150,10 @@ function AdminWorkbench({
   const [smsFrom, setSmsFrom] = useState("");
   const [notifyPhoneError, setNotifyPhoneError] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<string, UserEdit>>({});
+  // A directory is read far more often than it is edited, so a row shows what
+  // it IS and opens its controls only when asked. One row at a time: two open
+  // rows of selects is the wall of inputs this replaced.
+  const [editingUser, setEditingUser] = useState<string | null>(null);
   const [busy, setBusy] = useState<{
     key: "create" | "notify" | "invite" | "save" | "sms" | "delete" | "delete-company" | "brand";
     id?: string;
@@ -228,23 +233,22 @@ function AdminWorkbench({
   async function onSuggestColors(company: CompanyRecord) {
     const palette = company.logoUrl ? await paletteFromUrl(company.logoUrl) : FALLBACK;
     setLogoPalette(palette);
-    // The measured arrangement leads when the logo has one, and its centre
-    // colour becomes the flat --brand the panel tints are mixed from.
-    const ground = palette.grounds[0] ?? null;
+    // The logo's own layout comes WITH the logo. What is suggested is the flat
+    // colour it washes over, which is the only part left to choose.
     setBranding((current) => ({
       ...current,
       [company.id]: {
         accent: palette.accents[0],
-        background: ground?.stops[0]?.color ?? company.background,
-        ground: ground && ground.stops.length > 1 ? ground : null,
+        background: palette.backgrounds[0] ?? company.background,
+        ground: palette.ground,
       },
     }));
     toast.show(
       "ok",
       !company.logoUrl
-        ? "No logo on this board, so the defaults are suggested. SAVE COLORS to keep them."
-        : (ground?.stops.length ?? 0) > 1
-          ? "Ground read from where the logo's colours sit. SAVE COLORS to keep it."
+        ? "No logo on this board, so the system mark is suggested. SAVE COLORS to keep it."
+        : palette.ground
+          ? "Logo applied to the board, over a matching colour. SAVE COLORS to keep it."
           : "Colours read from the logo. SAVE COLORS to keep them.",
     );
   }
@@ -256,6 +260,7 @@ function AdminWorkbench({
 
   function switchTab(next: Tab) {
     setTab(next);
+    setEditingUser(null);
     setQuery("");
     closePreview();
     pulsePanel(detailRef.current);
@@ -503,8 +508,6 @@ function AdminWorkbench({
     const preview = URL.createObjectURL(file);
     try {
       const palette = await paletteFromFile(file);
-      const ground = palette.grounds[0] ?? null;
-      const measured = ground && ground.stops.length > 1 ? ground : null;
       const okLogo = await confirm({
         title: "UPDATE LOGO",
         body: `Replace ${company.name}'s board logo with ${file.name}? Its colours are applied to the board with it.`,
@@ -512,7 +515,7 @@ function AdminWorkbench({
         previewSrc: preview,
         previewLabel: "NEW LOGO",
         previewKind: "image",
-        previewGround: ground ? groundSwatch(ground) : undefined,
+        previewGround: palette.ground ? groundSwatch(palette.ground) : undefined,
         previewAccents: palette.accents,
       });
       if (!okLogo) return;
@@ -531,8 +534,8 @@ function AdminWorkbench({
         body: JSON.stringify({
           name: company.name,
           accent: palette.accents[0],
-          background: ground?.stops[0]?.color ?? company.background,
-          ground: measured,
+          background: palette.backgrounds[0] ?? company.background,
+          ground: palette.ground,
         }),
       });
       // The logo is live either way, so a failed recolour is reported rather
@@ -741,6 +744,7 @@ function AdminWorkbench({
           delete next[id];
           return next;
         });
+        setEditingUser(null);
         toast.show("ok", `Saved ${row.email}.`);
       }
       await load();
@@ -768,11 +772,17 @@ function AdminWorkbench({
       : `TRACKER — ${previewCompany?.name.toUpperCase() ?? "—"}`;
 
   const needle = query.trim().toLowerCase();
-  const shownCompanies = needle
+  // The seed board is the one that cannot be deleted and the one a new install
+  // starts from, so it reads first. Array.sort is stable, so the rest keep the
+  // name order the server already put them in.
+  const shownCompanies = (needle
     ? companies.filter((company) =>
         `${company.name} ${company.slug}`.toLowerCase().includes(needle),
       )
-    : companies;
+    : companies
+  )
+    .slice()
+    .sort((a, b) => Number(b.slug === SEED_SLUG) - Number(a.slug === SEED_SLUG));
   // Whoever is signed in reads their own account first, so the row whose
   // controls are all disabled is never hunted for. Array.sort is stable, so
   // everyone else keeps the email order the server already put them in.
@@ -1016,7 +1026,7 @@ function AdminWorkbench({
                       <img src={company.logoUrl} alt="" className="ops-row-logo" />
                     ) : null}
                     <div className="ops-row-tools">
-                      {company.slug === "ronin" ? (
+                      {company.slug === SEED_SLUG ? (
                         <span className="ops-meta">SEED BOARD — CANNOT DELETE</span>
                       ) : (
                         <button
@@ -1035,6 +1045,12 @@ function AdminWorkbench({
             )}
           </ul>
         ) : (
+          <div className="user-table">
+          <div className="user-head" aria-hidden>
+            <span>User</span>
+            <span>Role</span>
+            <span>Boards</span>
+          </div>
           <ul ref={listRef} className="console-scroll ops-rows">
             {shownUsers.length === 0 ? (
               <li className="empty-row">
@@ -1042,114 +1058,164 @@ function AdminWorkbench({
               </li>
             ) : (
               shownUsers.map((row) => {
+                const open = editingUser === row.id;
+                const scope =
+                  row.role === "admin"
+                    ? "All companies"
+                    : companies.find((item) => item.id === row.companyId)?.name ?? "No company";
                 const edit = draftFor(row, edits);
                 const dirty = draftDirty(row, edit);
                 const locked = row.id === user.id || Boolean(busy);
                 return (
-                <li key={row.id} className={row.disabled ? "is-revoked" : undefined}>
-                  <div className="ops-row ops-row-static">
-                    <span className="ship-num">
-                      {row.name || row.email}
-                      {row.disabled ? " · REVOKED" : ""}
+                <li
+                  key={row.id}
+                  className={rowClass(row.disabled, open)}
+                >
+                  {/* The row IS the control: reading an account and opening it
+                      are the same gesture, so nothing has to be aimed at. */}
+                  <button
+                    type="button"
+                    className="user-row"
+                    aria-expanded={open}
+                    onClick={() => setEditingUser(open ? null : row.id)}
+                  >
+                    <span className="user-id">
+                      <b>{row.name || row.email}</b>
+                      <span>
+                        {row.email}
+                        {row.phone ? ` · ${row.phone}` : ""}
+                      </span>
                     </span>
-                    <span className="ship-lane">
-                      {row.email}
-                      {row.phone ? ` · ${row.phone}` : ""}
+                    <span className={`role-pill is-${row.role}`}>
+                      {row.disabled ? "revoked" : row.role}
                     </span>
-                    <span className="ship-status">{row.role}</span>
-                  </div>
-                  <div className="ops-row-tools">
-                    <select
-                      value={edit.role}
-                      disabled={locked}
-                      aria-label={`Role for ${row.email}`}
-                      onChange={(event) => {
-                        const role = event.target.value as Role;
-                        patchEdit(row.id, {
-                          role,
-                          companyId:
-                            role === "admin"
-                              ? ""
-                              : edit.companyId || row.companyId || companies[0]?.id || "",
-                          phone: role === "client" ? edit.phone : "",
-                        });
-                      }}
-                    >
-                      <option value="client">client</option>
-                      <option value="tracker">tracker</option>
-                      <option value="admin">admin</option>
-                    </select>
-                    {edit.role === "client" ? (
-                      <input
-                        type="tel"
-                        inputMode="tel"
-                        value={edit.phone}
-                        aria-label={`Phone for ${row.email}`}
-                        placeholder="+63917xxxxxxx"
-                        disabled={locked}
-                        onChange={(event) => patchEdit(row.id, { phone: typedPhone(event.target.value) })}
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            void onSaveUser(row.id);
-                          }
-                        }}
-                      />
-                    ) : null}
-                    {edit.role === "admin" ? (
-                      <span className="ops-meta">ALL COMPANIES</span>
-                    ) : (
-                      <select
-                        value={edit.companyId}
-                        aria-label={`Company for ${row.email}`}
-                        disabled={locked}
-                        onChange={(event) => patchEdit(row.id, { companyId: event.target.value })}
-                      >
-                        {companies.map((company) => (
-                          <option key={company.id} value={company.id}>
-                            {company.name}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                    {row.id === user.id ? (
-                      <span className="ops-meta">YOU</span>
-                    ) : (
-                      <>
-                        <button
-                          className="ops-key"
-                          type="button"
-                          disabled={!dirty || Boolean(busy)}
-                          onClick={() => void onSaveUser(row.id)}
-                        >
-                          {busy?.key === "save" && busy.id === row.id ? busy.label : "SAVE"}
-                        </button>
-                        {row.disabled ? null : (
-                          <button
-                            className="danger"
-                            type="button"
-                            disabled={Boolean(busy)}
-                            onClick={() => onRevoke(row.id)}
+                    <span className="user-scope">{scope}</span>
+                  </button>
+                  {open ? (
+                    <div className="user-card">
+                      <dl className="user-facts">
+                        <div>
+                          <dt>NAME</dt>
+                          <dd>{row.name || "—"}</dd>
+                        </div>
+                        <div>
+                          <dt>EMAIL</dt>
+                          <dd>{row.email}</dd>
+                        </div>
+                        <div>
+                          <dt>ADDED</dt>
+                          <dd>{row.createdAt ? row.createdAt.slice(0, 10) : "—"}</dd>
+                        </div>
+                        <div>
+                          <dt>STATUS</dt>
+                          <dd>{row.disabled ? "Revoked" : "Active"}</dd>
+                        </div>
+                      </dl>
+                      <div className="user-fields">
+                        <label>
+                          ROLE
+                          <select
+                            value={edit.role}
+                            disabled={locked}
+                            onChange={(event) => {
+                              const role = event.target.value as Role;
+                              patchEdit(row.id, {
+                                role,
+                                companyId:
+                                  role === "admin"
+                                    ? ""
+                                    : edit.companyId || row.companyId || companies[0]?.id || "",
+                                phone: role === "client" ? edit.phone : "",
+                              });
+                            }}
                           >
-                            Revoke
-                          </button>
+                            <option value="client">client</option>
+                            <option value="tracker">tracker</option>
+                            <option value="admin">admin</option>
+                          </select>
+                        </label>
+                        {edit.role === "client" ? (
+                          <label>
+                            PHONE
+                            <input
+                              type="tel"
+                              inputMode="tel"
+                              value={edit.phone}
+                              placeholder="+63917xxxxxxx"
+                              disabled={locked}
+                              onChange={(event) =>
+                                patchEdit(row.id, { phone: typedPhone(event.target.value) })
+                              }
+                            />
+                          </label>
+                        ) : null}
+                        <label>
+                          COMPANY
+                          {edit.role === "admin" ? (
+                            <span className="user-static">All companies</span>
+                          ) : (
+                            <select
+                              value={edit.companyId}
+                              disabled={locked}
+                              onChange={(event) =>
+                                patchEdit(row.id, { companyId: event.target.value })
+                              }
+                            >
+                              {companies.map((company) => (
+                                <option key={company.id} value={company.id}>
+                                  {company.name}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </label>
+                      </div>
+                      <div className="user-card-acts">
+                        {row.id === user.id ? (
+                          <span className="ops-meta">
+                            This is the account you are signed in with.
+                          </span>
+                        ) : (
+                          <>
+                            <button
+                              className="ops-key"
+                              type="button"
+                              disabled={!dirty || Boolean(busy)}
+                              onClick={() => void onSaveUser(row.id)}
+                            >
+                              {busy?.key === "save" && busy.id === row.id ? busy.label : "SAVE"}
+                            </button>
+                            {row.disabled ? null : (
+                              <button
+                                className="link-danger"
+                                type="button"
+                                disabled={Boolean(busy)}
+                                onClick={() => onRevoke(row.id)}
+                              >
+                                Revoke access
+                              </button>
+                            )}
+                            <button
+                              className="link-danger"
+                              type="button"
+                              disabled={Boolean(busy)}
+                              onClick={() => onDeleteUser(row.id)}
+                            >
+                              {busy?.key === "delete" && busy.id === row.id
+                                ? busy.label
+                                : "Delete"}
+                            </button>
+                          </>
                         )}
-                        <button
-                          className="danger"
-                          type="button"
-                          disabled={Boolean(busy)}
-                          onClick={() => onDeleteUser(row.id)}
-                        >
-                          {busy?.key === "delete" && busy.id === row.id ? busy.label : "Delete"}
-                        </button>
-                      </>
-                    )}
-                  </div>
+                      </div>
+                    </div>
+                  ) : null}
                 </li>
                 );
               })
             )}
           </ul>
+          </div>
         )}
       </section>
 
@@ -1186,7 +1252,7 @@ function AdminWorkbench({
                 </div>
               </dl>
               <div className="ops-danger">
-                {selected.slug === "ronin" ? (
+                {selected.slug === SEED_SLUG ? (
                   <p className="ops-meta">Ronin is the seed board and cannot be deleted.</p>
                 ) : (
                   <>
@@ -1221,20 +1287,15 @@ function AdminWorkbench({
                       onChange={(event) => setBrand(selected, { accent: event.target.value })}
                     />
                   </label>
-                  {/* Read from this board's own logo. With no logo there is
-                      nothing to read, so the offer falls back to colours that
-                      at least sit well against the ground already chosen. */}
+                  {/* Always the logo's own inks, dominant first. A board with no artwork of
+                      its own is read from the system mark instead, so it is the
+                      same rule rather than a different one. */}
                   <div
                     className="ops-suggest"
                     role="group"
-                    aria-label={
-                      selected.logoUrl ? "Accents from the logo" : "Accents matching this background"
-                    }
+                    aria-label="Accents from the logo"
                   >
-                    {(selected.logoUrl
-                      ? logoPalette.accents
-                      : matchingAccents(colors.background)
-                    ).map((hex) => (
+                    {logoPalette.accents.map((hex) => (
                       <button
                         key={hex}
                         type="button"
@@ -1261,64 +1322,22 @@ function AdminWorkbench({
                       }
                     />
                   </label>
-                  {/* With a logo these are grounds read off the artwork: the
-                      measured arrangement first, then its flat colours. With
-                      no logo there is nothing to read, so colours that sit
-                      well against the accent stand in. */}
-                  <div
-                    className="ops-suggest"
-                    role="group"
-                    aria-label={
-                      selected.logoUrl ? "Grounds from the logo" : "Backgrounds matching this accent"
-                    }
-                  >
-                    {selected.logoUrl
-                      ? logoPalette.grounds.map((option) => {
-                          const measured = option.stops.length > 1;
-                          const base = option.stops[0].color;
-                          const on = measured
-                            ? JSON.stringify(option) === JSON.stringify(colors.ground)
-                            : base === colors.background && !colors.ground;
-                          return (
-                            <button
-                              key={groundSwatch(option)}
-                              type="button"
-                              className={on ? "is-on" : undefined}
-                              style={{ background: groundSwatch(option) }}
-                              title={
-                                measured
-                                  ? option.stops.map((stop) => stop.color.toUpperCase()).join(" to ")
-                                  : base.toUpperCase()
-                              }
-                              aria-label={
-                                measured
-                                  ? `Use the ground read from the logo, ${option.stops
-                                      .map((stop) => stop.color.toUpperCase())
-                                      .join(" to ")}`
-                                  : `Use background ${base.toUpperCase()}`
-                              }
-                              onClick={() =>
-                                setBrand(selected, {
-                                  background: base,
-                                  ground: measured ? option : null,
-                                })
-                              }
-                            />
-                          );
-                        })
-                      : matchingBackgrounds(colors.accent).map((hex) => (
-                          <button
-                            key={hex}
-                            type="button"
-                            className={
-                              hex === colors.background && !colors.ground ? "is-on" : undefined
-                            }
-                            style={{ background: hex }}
-                            title={hex.toUpperCase()}
-                            aria-label={`Use background ${hex.toUpperCase()}`}
-                            onClick={() => setBrand(selected, { background: hex, ground: null })}
-                          />
-                        ))}
+                  {/* The board already wears its logo; these decide what that
+                      wash sits ON — night colours in the logo's own hue, from
+                      the system mark when the board has no logo of its own.
+                      Neither touches the ground. */}
+                  <div className="ops-suggest" role="group" aria-label="Backgrounds from the logo">
+                    {logoPalette.backgrounds.map((hex) => (
+                      <button
+                        key={hex}
+                        type="button"
+                        className={hex === colors.background ? "is-on" : undefined}
+                        style={{ background: hex }}
+                        title={hex.toUpperCase()}
+                        aria-label={`Use background ${hex.toUpperCase()}`}
+                        onClick={() => setBrand(selected, { background: hex })}
+                      />
+                    ))}
                   </div>
                 </div>
                 <div className="ops-brand-actions">

@@ -20,14 +20,12 @@ export type BoardGround = { stops: GroundStop[] };
 export type Palette = {
   /** The logo's own colours, the one that reads best on night first. */
   accents: string[];
-  /** Ground options: the measured arrangement first, then the flat colours. */
-  grounds: BoardGround[];
+  /** The logo laid out across the board. Not a choice: a board with artwork
+   *  wears it, and the flat colour below only decides what it washes over. */
+  ground: BoardGround | null;
+  /** Flat board colours that sit UNDER that ground, in the logo's own hue. */
+  backgrounds: string[];
 };
-
-/** A flat board: one smear, centred, wide enough to cover everything. */
-const flat = (color: string): BoardGround => ({
-  stops: [{ color, x: 50, y: 50, at: 140 }],
-});
 
 /** What a board with no logo of its own is offered: the system's mark.
  *
@@ -36,24 +34,27 @@ const flat = (color: string): BoardGround => ({
  *  same way as one with artwork, using the product's own mark as the artwork,
  *  so it still looks like part of the product rather than a stock default. */
 export const FALLBACK: Palette = {
-  accents: ["#eef1f4", "#f0362c", "#8d949c"],
-  grounds: [
-    // The mark as it is actually built: the red arc sweeping the top left to
-    // the dot it ends on, the red petal at the left, and the pale bloom falling
-    // away to the bottom left.
-    {
-      stops: [
-        { color: "#d81f22", x: 34, y: 26, at: 30 },
-        { color: "#f0362c", x: 62, y: 20, at: 22 },
-        { color: "#b81318", x: 38, y: 52, at: 26 },
-        { color: "#c6cbd1", x: 54, y: 44, at: 30 },
-        { color: "#98a0a8", x: 60, y: 62, at: 28 },
-        { color: "#767d85", x: 44, y: 70, at: 26 },
-      ],
-    },
-    flat("#0b1116"),
-    flat("#d81f22"),
-  ],
+  // Red leads, for the same reason a measured palette leads with its most-used
+  // ink: it is what the mark reads as. These three are hand-written rather than
+  // counted off pixels, so "dominant" is a judgement — and the ground below
+  // leads with the red arc while the backgrounds are mixed from that same red.
+  // An accent that led with the silver contradicted both.
+  accents: ["#f0362c", "#eef1f4", "#8d949c"],
+  // The mark as it is actually built: the red arc sweeping the top left to the
+  // dot it ends on, the red petal at the left, and the pale bloom falling away
+  // to the bottom left.
+  ground: {
+    stops: [
+      { color: "#d81f22", x: 34, y: 26, at: 30 },
+      { color: "#f0362c", x: 62, y: 20, at: 22 },
+      { color: "#b81318", x: 38, y: 52, at: 26 },
+      { color: "#c6cbd1", x: 54, y: 44, at: 30 },
+      { color: "#98a0a8", x: 60, y: 62, at: 28 },
+      { color: "#767d85", x: 44, y: 70, at: 26 },
+    ],
+  },
+  // Taken from the mark's own red, so the flat colour under it belongs to it.
+  backgrounds: matchingBackgrounds("#d81f22"),
 };
 
 function hex(r: number, g: number, b: number) {
@@ -67,7 +68,9 @@ function toHsl(r: number, g: number, b: number) {
   const min = Math.min(rn, gn, bn);
   const l = (max + min) / 2;
   const d = max - min;
-  if (!d) return { h: 0, s: 0, l };
+  // d is chroma: how far the colour is from grey, before HSL divides it by a
+  // lightness term that explodes near white and near black.
+  if (!d) return { h: 0, s: 0, l, c: 0 };
   const s = d / (1 - Math.abs(2 * l - 1));
   const h =
     max === rn
@@ -75,7 +78,7 @@ function toHsl(r: number, g: number, b: number) {
       : max === gn
         ? (bn - rn) / d + 2
         : (rn - gn) / d + 4;
-  return { h: h * 60, s, l };
+  return { h: h * 60, s, l, c: d };
 }
 
 function fromHsl(h: number, s: number, l: number) {
@@ -104,9 +107,21 @@ function luminance(r: number, g: number, b: number) {
 
 const NIGHT = luminance(10, 12, 15);
 
+const ratio = (a: number, b: number) =>
+  (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+
 export function contrastOnNight(r: number, g: number, b: number) {
-  const l = luminance(r, g, b);
-  return l > NIGHT ? (l + 0.05) / (NIGHT + 0.05) : (NIGHT + 0.05) / (l + 0.05);
+  return ratio(luminance(r, g, b), NIGHT);
+}
+
+const rgbOf = (value: string) => {
+  const n = parseInt(value.replace("#", "").padEnd(6, "0").slice(0, 6), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255] as const;
+};
+
+/** WCAG contrast between two colours, either way round. */
+export function contrastBetween(a: string, b: string) {
+  return ratio(luminance(...rgbOf(a)), luminance(...rgbOf(b)));
 }
 
 type Cluster = {
@@ -125,6 +140,18 @@ type Cluster = {
 const keyOf = (r: number, g: number, b: number) =>
   ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
 
+/** How far apart two colours can be and still be one ink softened by
+ *  antialiasing rather than two different inks. */
+const ONE_INK = 48;
+
+/** How many of a logo's colours are kept.
+ *
+ *  Four is the accent row's worth, and it was also all the ground had to lay
+ *  out — which is why an eight-colour pinwheel came back as a board wearing two
+ *  of them. The accents still take the leading three; the rest are here so the
+ *  mark on the board looks like the mark. */
+const INKS = 6;
+
 /** Every colour the artwork actually uses, most-used first, with where it sits.
  *
  *  Unlike a hue histogram this keeps white, black and grey. A mark that is
@@ -134,13 +161,13 @@ function dominantColors(
   data: Uint8ClampedArray,
   width: number,
   height: number,
-  skip?: Set<number> | null,
+  skip?: Uint8Array | null,
 ): Cluster[] {
   const bins = new Map<number, Cluster>();
   let opaque = 0;
   for (let i = 0; i < data.length; i += 4) {
     if (data[i + 3] < 128) continue;
-    if (skip?.has(keyOf(data[i], data[i + 1], data[i + 2]))) continue;
+    if (skip?.[i / 4]) continue;
     opaque += 1;
     const r = data[i];
     const g = data[i + 1];
@@ -181,7 +208,7 @@ function dominantColors(
   const merged: (Cluster & { seed: [number, number, number] })[] = [];
   for (const bin of counted) {
     const near = merged.find(
-      (o) => Math.hypot(o.seed[0] - bin.r, o.seed[1] - bin.g, o.seed[2] - bin.b) < 48,
+      (o) => Math.hypot(o.seed[0] - bin.r, o.seed[1] - bin.g, o.seed[2] - bin.b) < ONE_INK,
     );
     if (!near) {
       merged.push({ ...bin, keys: [...bin.keys], seed: [bin.r, bin.g, bin.b] });
@@ -201,7 +228,7 @@ function dominantColors(
   // shades are back together; filtering first deletes it one crumb at a time
   // and a small mark on a big card vanishes entirely.
   const kept = merged.filter((cluster) => cluster.count / opaque >= 0.04);
-  return (kept.length ? kept : merged).slice(0, 4);
+  return (kept.length ? kept : merged).slice(0, INKS);
 }
 
 /** How finely the mark is sampled. Six across keeps an arc in the top left
@@ -210,8 +237,12 @@ function dominantColors(
 const GRID = 6;
 
 /** How much of a cell the mark has to fill before it counts as part of how the
- *  mark is built, rather than somewhere it merely grazes. */
-const COVERAGE = 0.18;
+ *  mark is built, rather than somewhere it merely grazes.
+ *
+ *  Low, because it is no longer the thing keeping edges out — cardMask has
+ *  already eaten them. What it rejects now is a cell the mark genuinely only
+ *  clips, and a small logo still gets laid out instead of falling back flat. */
+const COVERAGE = 0.08;
 
 /** The mark, blurred out across the board.
  *
@@ -231,7 +262,7 @@ function groundFrom(
   width: number,
   height: number,
   clusters: Cluster[],
-  skip?: Set<number> | null,
+  skip?: Uint8Array | null,
 ): BoardGround | null {
   if (!clusters.length) return null;
   const owner = new Map<number, number>();
@@ -254,8 +285,8 @@ function groundFrom(
     const cell = cells[row * GRID + col];
     cell.all += 1;
     if (data[i + 3] < 128) continue;
+    if (skip?.[px]) continue;
     const key = keyOf(data[i], data[i + 1], data[i + 2]);
-    if (skip?.has(key)) continue;
     // A pixel belonging to no kept ink is noise, and does not get a vote.
     const index = owner.get(key);
     if (index === undefined) continue;
@@ -290,6 +321,21 @@ function groundFrom(
   // grid of identical smears stacked on top of it.
   const varied = new Set(stops.map((stop) => stop.color)).size > 1;
   return varied ? { stops } : null;
+}
+
+/** The same colour, lifted until it can be read on the night console.
+ *
+ *  Hue and saturation are kept, so a deep navy accent still reads as that
+ *  navy — just one a label can be printed in. Nothing is touched when the
+ *  colour already clears the floor, which is most of the time. */
+function readableAccent(value: string) {
+  if (contrastOnNight(...rgbOf(value)) >= 4.5) return value;
+  const { h, s, l } = hexToHsl(value);
+  for (let lift = l + 0.02; lift <= 0.94; lift += 0.02) {
+    const next = fromHsl(h, s, lift);
+    if (contrastOnNight(...rgbOf(next)) >= 4.5) return next;
+  }
+  return fromHsl(h, s, 0.94);
 }
 
 /** Which cluster is the card the logo was supplied ON, or -1 for none.
@@ -332,6 +378,53 @@ function cardIndex(
   return tally[best] / border >= 0.7 ? best : -1;
 }
 
+/** Which pixels are NOT the artwork: the card it was supplied on, anything
+ *  transparent, and — the point of this — everything within reach of either.
+ *
+ *  A logo is drawn at its own size and scaled down to be read, and every pixel
+ *  that straddles an edge on the way down comes out a blend of the ink and the
+ *  card. Those blends are not colours the logo contains, but there are a great
+ *  many of them: around a small mark, or along the strokes of a wordmark, they
+ *  outnumber the inks themselves and take every slot in the palette. An
+ *  eight-colour pinwheel then reports three greys.
+ *
+ *  Growing the card by a pixel or two eats exactly that boundary and leaves the
+ *  solid middles of the artwork, which are the colours it is actually made of.
+ *  Type too thin to survive it had no solid middle to begin with. */
+function cardMask(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  card: Cluster | null,
+) {
+  const keys = card ? new Set(card.keys) : null;
+  const mask = new Uint8Array(width * height);
+  for (let px = 0; px < mask.length; px++) {
+    const i = px * 4;
+    if (data[i + 3] < 128) mask[px] = 1;
+    else if (keys?.has(keyOf(data[i], data[i + 1], data[i + 2]))) mask[px] = 1;
+  }
+
+  // Scaled to the image, so the same edge is eaten however finely it is read.
+  const reach = Math.max(1, Math.round(width / 80));
+  for (let pass = 0; pass < reach; pass++) {
+    const grown = Uint8Array.from(mask);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (mask[y * width + x]) continue;
+        const touches =
+          (x > 0 && mask[y * width + x - 1]) ||
+          (x < width - 1 && mask[y * width + x + 1]) ||
+          (y > 0 && mask[(y - 1) * width + x]) ||
+          (y < height - 1 && mask[(y + 1) * width + x]);
+        if (touches) grown[y * width + x] = 1;
+      }
+    }
+    mask.set(grown);
+  }
+  return mask;
+}
+
 export function paletteFromPixels(
   data: Uint8ClampedArray,
   width: number,
@@ -345,35 +438,28 @@ export function paletteFromPixels(
   // colours, the centre and the spread all describe the MARK and nothing else.
   // A mark that fills its own frame has no card, and nothing is dropped.
   const card = cardIndex(data, width, height, found);
-  const mark = card >= 0 ? dominantColors(data, width, height, new Set(found[card].keys)) : found;
+  const skip = cardMask(data, width, height, card >= 0 ? found[card] : null);
+  const mark = dominantColors(data, width, height, skip);
   const clusters = mark.length ? mark : found;
 
   const colors = clusters.map((c) => hex(c.r, c.g, c.b));
-  // The accent is one of the logo's own colours, picked for how far it stands
-  // off the ground rather than for how saturated it is.
-  const accents = clusters
-    .map((c, index) => ({ hex: colors[index], lift: contrastOnNight(c.r, c.g, c.b) }))
-    .sort((a, b) => b.lift - a.lift)
-    .map((entry) => entry.hex);
+  /* The accent leads with the logo's MOST-USED ink, because that is the colour
+     the mark reads as. dominantColors already returns them that way, and
+     re-sorting by contrast is what put a white corner ahead of an orange fox:
+     the more legible colour is not the same thing as the brand's colour. Only
+     the console floor is enforced, and only on a colour that fails it. */
+  const accents = colors.map(readableAccent);
 
   // The ground is the mark copied and blurred: every cell of the artwork keeps
   // its own place on the board, so the arrangement survives.
-  const grounds: BoardGround[] = [];
-  const measured = groundFrom(
-    data,
-    width,
-    height,
-    clusters,
-    card >= 0 ? new Set(found[card].keys) : null,
-  );
-  if (measured) grounds.push(measured);
-  // Then the flat colours, so the measured ground is never the only choice.
-  for (const color of colors) {
-    if (grounds.length >= 3) break;
-    grounds.push(flat(color));
-  }
+  // The mark copied and blurred: applied whenever the artwork has an
+  // arrangement to read, rather than offered as one option among flat colours.
+  const ground = groundFrom(data, width, height, clusters, skip);
+  // What that mark washes over: night colours carrying the logo's own hue, so
+  // the flat choice below the ground still belongs to the same logo.
+  const backgrounds = matchingBackgrounds(colors[0]);
 
-  return { accents: [...new Set(accents)].slice(0, 3), grounds: grounds.slice(0, 3) };
+  return { accents: [...new Set(accents)].slice(0, 3), ground, backgrounds };
 }
 
 /** How much of the logo's real colour reaches the board.
@@ -457,18 +543,139 @@ export function matchingAccents(background: string): string[] {
   ];
 }
 
-/* 64 square is enough to place colours without making the second pass over the
-   pixels expensive. */
-const SIZE = 64;
+/** The land the map is drawn on, which is what every overlay has to read
+ *  against. Lives here rather than beside the tile styles so the contrast the
+ *  palette below promises is measured against the real ground. */
+export const MAP_LAND = { night: "#151c1e", day: "#f2f4f4" } as const;
+
+/** One role on the map: the colour it is drawn in, and the colour of the number
+ *  printed on it. The ink is chosen per stop rather than once for the map, so a
+ *  ramp can run from dark to light without the label falling off it halfway. */
+export type MapStop = { fill: string; ink: string };
+
+/** What the map draws a journey with, built from the board's own two colours. */
+export type MapPalette = {
+  route: string;
+  origin: MapStop;
+  history: MapStop;
+  dest: MapStop;
+};
+
+/** How far from grey a colour has to be before its hue means anything.
+ *
+ *  Measured as chroma, never as HSL saturation, which is chroma divided by a
+ *  lightness term that explodes near white and near black: #eef1f4 reports a
+ *  HIGHER saturation than #c6cbd1 while carrying half its chroma. Gate on
+ *  saturation and a silver reads as a strong blue. */
+const BRAND_CHROMA = 0.12;
+
+/** The board's own colours, rebuilt as a map legend.
+ *
+ *  Nothing here is invented. The darker of the board's two colours anchors the
+ *  journey and marks its origin; the destination is that same colour lightened;
+ *  the scans in between take the colour that sits between the two, so the whole
+ *  route reads as one ramp of the board's palette rather than a handful of
+ *  unrelated hues. Rotating to a complementary gives three colours that are
+ *  easy to tell apart and look nothing like the board they sit on.
+ *
+ *  What the board does NOT get to decide is lightness. A dark brand on a night
+ *  map is invisible however faithful it is, so the ramp's three steps are set
+ *  by the map and only the hues come from the board. */
+export function mapPalette(accent: string, background: string, night: boolean): MapPalette {
+  const brand = hexToHsl(accent);
+  const ground = hexToHsl(background);
+
+  /* Which of the board's two colours carries the hue. A silver or near-white
+     accent still has a faint cast — #c6cbd1 is technically 213 degrees, blue —
+     and amplifying that to a legible saturation paints a red board's map bright
+     blue while its actual red goes unused. So a hue is only taken from a colour
+     with real chroma: the accent if it has any, otherwise the background, and
+     only a board with no colour at all falls back to the house amber. */
+  const source =
+    brand.c >= BRAND_CHROMA
+      ? brand
+      : ground.c >= BRAND_CHROMA
+        ? ground
+        : { h: 43, s: 0.6, c: 1, l: 0.5 };
+
+  // The anchor is the DARKER of the two, which is what origin and destination
+  // are both cut from — destination being the same colour, lightened.
+  const anchor =
+    luminance(...rgbOf(accent)) <= luminance(...rgbOf(background)) ? brand : ground;
+  const anchorHue = anchor.c >= BRAND_CHROMA ? anchor.h : source.h;
+  const anchorSat = Math.max(anchor.c >= BRAND_CHROMA ? anchor.s : source.s, 0.45);
+
+  // The scans sit between the board's two colours, so their colour is the one
+  // nearest to both: the midpoint of the pair.
+  const mid = rgbOf(accent).map((v, i) => (v + rgbOf(background)[i]) / 2) as unknown as number[];
+  const blend = hexToHsl(hex(mid[0], mid[1], mid[2]));
+  const blendHue = blend.c >= 0.04 ? blend.h : anchorHue;
+  const blendSat = Math.max(blend.s, 0.3);
+
+  const land = night ? MAP_LAND.night : MAP_LAND.day;
+  const inkHue = ground.c >= BRAND_CHROMA ? ground.h : source.h;
+  const inkSat = Math.min(ground.s, 0.2);
+  const inks = [fromHsl(inkHue, inkSat, 0.07), fromHsl(inkHue, inkSat, 0.97)];
+  const inkFor = (fill: string) =>
+    contrastBetween(inks[0], fill) >= contrastBetween(inks[1], fill) ? inks[0] : inks[1];
+
+  /* A stop has to clear two bars: 3:1 against the map it sits on, and 4.5:1
+     under the 11px number printed on it — and a mid-tone can fail the second
+     against black AND white at once. HSL lightness cannot promise either,
+     because it is not perceptual: a cyan and a brown at the same lightness are
+     nowhere near the same brightness. So the lightness is walked away from the
+     map's own ground until both bars are measured as cleared, which is also the
+     direction that leaves the mid-tone dead zone. */
+  const place = (h: number, sat: number, from: number): MapStop & { l: number } => {
+    const step = night ? 0.02 : -0.02;
+    for (let l = from; l > 0.05 && l < 0.95; l += step) {
+      const fill = fromHsl(h, sat, l);
+      const ink = inkFor(fill);
+      if (contrastBetween(fill, land) >= 3 && contrastBetween(ink, fill) >= 4.5) {
+        return { fill, ink, l };
+      }
+    }
+    const fill = fromHsl(h, sat, from);
+    return { fill, ink: inkFor(fill), l: from };
+  };
+
+  /* Where a journey starts and where it ends are the same kind of thing, so
+     they are neighbours: the destination is the origin's colour a shade along,
+     no more. The scans in between are the ones that have to stand out from
+     both, so the blend takes the far end of the ramp rather than the middle.
+     Measured from where the origin LANDS, not from where it was aimed: the walk
+     above moves it, and a fixed pair of numbers would leave the two ends closer
+     for one brand than the next. */
+  const steps = night ? { origin: 0.5, history: 0.82 } : { origin: 0.16, history: 0.4 };
+  const origin = place(anchorHue, anchorSat, steps.origin);
+  const history = place(blendHue, blendSat, steps.history);
+  return {
+    // The line is the journey the scans string together, so it is the same ink.
+    route: history.fill,
+    origin,
+    history,
+    dest: place(anchorHue, anchorSat, origin.l + (night ? 0.12 : -0.08)),
+  };
+}
+
+/** How finely a logo is sampled before its colours are counted.
+ *
+ *  Not a performance knob: at 64 a small mark in a large card is mostly EDGE,
+ *  and the part-card tones along those edges outnumber any single ink in it —
+ *  an eight-colour pinwheel came back as two greys because the blend between
+ *  its petals was the most common colour in the image. Sampling finely enough
+ *  that the inks outnumber their own edges is what fixes that, and 160 square
+ *  is still only 25k pixels to walk. */
+export const SAMPLE = 160;
 
 function readCanvas(source: CanvasImageSource): Palette {
   const canvas = document.createElement("canvas");
-  canvas.width = SIZE;
-  canvas.height = SIZE;
+  canvas.width = SAMPLE;
+  canvas.height = SAMPLE;
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) return FALLBACK;
-  ctx.drawImage(source, 0, 0, SIZE, SIZE);
-  return paletteFromPixels(ctx.getImageData(0, 0, SIZE, SIZE).data, SIZE, SIZE);
+  ctx.drawImage(source, 0, 0, SAMPLE, SAMPLE);
+  return paletteFromPixels(ctx.getImageData(0, 0, SAMPLE, SAMPLE).data, SAMPLE, SAMPLE);
 }
 
 /** Re-read the palette from a logo already on the board. A stored logo may be

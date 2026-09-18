@@ -12,6 +12,7 @@ import {
 } from "./firestore";
 import {
   DEFAULT_ACCENT,
+  SEED_SLUG,
   DEFAULT_BACKGROUND,
   type AuditRecord,
   type CompanyRecord,
@@ -238,32 +239,43 @@ async function seedNow() {
   const admin = await getBootstrapTokens();
   const token = admin.idToken;
   const kind = bootstrapCredentials().kind;
-  await writeUserDoc(
-    admin.localId,
-    {
-      email: admin.email,
-      name: kind === "platform" ? "Guilmar Quimba" : "Platform Admin",
-      role: "admin",
-      companyId: null,
-      companySlug: null,
-      disabled: false,
-      createdAt: new Date().toISOString(),
-      invitedBy: null,
-      mustChangePassword: false,
-      phone: null,
-    },
-    token,
-  );
+  /* The seed exists to make sure the bootstrap admin CAN sign in, not to keep
+     rewriting it. Re-stamping the whole document on every boot undid every edit
+     an operator had made to that account — most visibly its name, which kept
+     reappearing on whichever account ADMIN_EMAIL happens to point at, however
+     many times it was corrected. An account that already exists keeps
+     everything, and only the two fields that grant the access are enforced. */
+  const seeded = await getDocument("users", admin.localId, token);
+  if (seeded) {
+    await patchDocument("users", admin.localId, { role: "admin", disabled: false }, token);
+  } else {
+    await writeUserDoc(
+      admin.localId,
+      {
+        email: admin.email,
+        name: kind === "platform" ? "Guilmar Quimba" : "Platform Admin",
+        role: "admin",
+        companyId: null,
+        companySlug: null,
+        disabled: false,
+        createdAt: new Date().toISOString(),
+        invitedBy: null,
+        mustChangePassword: false,
+        phone: null,
+      },
+      token,
+    );
+  }
 
   await retireSeedAccounts(token);
 
-  let ronin = (await queryByField("companies", "slug", "ronin", token))[0];
+  let ronin = (await queryByField("companies", "slug", SEED_SLUG, token))[0];
   if (!ronin) {
     const id = randomUUID();
     const company = {
       id,
       name: "Ronin",
-      slug: "ronin",
+      slug: SEED_SLUG,
       createdAt: new Date().toISOString(),
       accent: DEFAULT_ACCENT,
       background: DEFAULT_BACKGROUND,
@@ -478,7 +490,7 @@ export async function deleteCompany(id: string, token: string) {
   await ensureSeeded();
   const company = await getCompanyById(id, token);
   if (!company) throw new Error("Company not found.");
-  if (company.slug === "ronin") {
+  if (company.slug === SEED_SLUG) {
     throw new Error("Ronin is the seed company and cannot be deleted.");
   }
   const [shipments, audits, users] = await Promise.all([

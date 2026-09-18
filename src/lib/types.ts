@@ -1,5 +1,9 @@
 import type { BoardGround } from "./logo-palette";
 
+/** The board every install is seeded with. It cannot be deleted, so it is
+ *  the one slug the app may refer to by name. */
+export const SEED_SLUG = "ronin";
+
 export type Role = "admin" | "tracker" | "client";
 
 export type UserRecord = {
