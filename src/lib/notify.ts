@@ -223,21 +223,112 @@ function openPhoneError(json: {
   );
 }
 
+type OpenPhoneLine = {
+  id: string;
+  number: string;
+  userId?: string;
+  messagingUS?: string;
+};
+
+let openPhoneLinesCache: { at: number; lines: OpenPhoneLine[] } | null = null;
+
+async function listOpenPhoneLines() {
+  if (openPhoneLinesCache && Date.now() - openPhoneLinesCache.at < 5 * 60_000) {
+    return openPhoneLinesCache.lines;
+  }
+  let lastError = "Could not list Quo phone numbers.";
+  for (const base of openPhoneBases()) {
+    for (const authorization of openPhoneAuthHeaders()) {
+      const res = await fetch(`${base}/v1/phone-numbers`, {
+        headers: { Authorization: authorization, Accept: "application/json" },
+        cache: "no-store",
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        data?: Array<{
+          id?: string;
+          number?: string;
+          users?: { id?: string }[];
+          restrictions?: { messaging?: { US?: string } };
+        }>;
+        message?: string;
+        title?: string;
+        description?: string;
+      };
+      if (!res.ok) {
+        lastError = openPhoneError(json, lastError);
+        if (res.status === 401 || res.status === 403) continue;
+        if (res.status === 404 || res.status >= 500) break;
+        continue;
+      }
+      const lines = (json.data ?? [])
+        .filter((row) => row.id && row.number)
+        .map((row) => ({
+          id: row.id as string,
+          number: row.number as string,
+          userId: row.users?.[0]?.id,
+          messagingUS: row.restrictions?.messaging?.US,
+        }));
+      openPhoneLinesCache = { at: Date.now(), lines };
+      return lines;
+    }
+  }
+  throw new Error(lastError);
+}
+
+async function resolveOpenPhoneSender() {
+  const wanted = (process.env.OPENPHONE_FROM || process.env.QUO_FROM || "").trim();
+  const e164 = normalizePhone(wanted) ?? "";
+  if (!wanted) {
+    throw new Error("OPENPHONE_FROM must be a full number, like +16316584888.");
+  }
+  const lines = await listOpenPhoneLines();
+  const line = lines.find((item) => item.id === wanted || item.number === e164);
+  if (!line) {
+    throw new Error(
+      `OPENPHONE_FROM ${wanted} is not a Quo number on this API key. Pick a line from the Quo workspace.`,
+    );
+  }
+  if (line.messagingUS === "restricted") {
+    throw new Error(
+      `${line.number} cannot send US SMS in Quo. Use a line with US messaging unrestricted, and register it for A2P 10DLC.`,
+    );
+  }
+  return line;
+}
+
+async function waitForOpenPhoneStatus(
+  base: string,
+  authorization: string,
+  id: string,
+) {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const res = await fetch(`${base}/v1/messages/${id}`, {
+      headers: { Authorization: authorization, Accept: "application/json" },
+      cache: "no-store",
+    });
+    const json = (await res.json().catch(() => ({}))) as {
+      data?: { status?: string };
+    };
+    const status = json.data?.status;
+    if (status === "delivered") return "delivered";
+    if (status === "undelivered" || status === "failed") return status;
+  }
+  return "sent";
+}
+
 async function sendOpenPhone(to: string[], content: string) {
   if (!openPhoneConfigured()) {
     throw new Error("SMS is not configured. Add OPENPHONE_API_KEY and OPENPHONE_FROM.");
   }
-  const from = openPhoneFrom();
+  const sender = await resolveOpenPhoneSender();
   const requested = e164List(to);
-  const skippedSelf = requested.filter((number) => number === from);
-  const recipients = requested.filter((number) => number !== from);
-  if (!from) {
-    throw new Error("OPENPHONE_FROM must be a full number, like +15028016431.");
-  }
+  const skippedSelf = requested.filter((number) => number === sender.number);
+  const recipients = requested.filter((number) => number !== sender.number);
   if (!recipients.length) {
     if (skippedSelf.length) {
       throw new Error(
-        `${from} is the OpenPhone sending number, so it cannot receive its own texts. Add a client or CC phone that is not that number.`,
+        `${sender.number} is the OpenPhone sending number, so it cannot receive its own texts. Add a client or CC phone that is not that number.`,
       );
     }
     throw new Error("No valid phone numbers to text.");
@@ -260,8 +351,9 @@ async function sendOpenPhone(to: string[], content: string) {
             },
             body: JSON.stringify({
               content,
-              from,
+              from: sender.id,
               to: [number],
+              ...(sender.userId ? { userId: sender.userId } : {}),
             }),
             cache: "no-store",
           });
@@ -269,27 +361,36 @@ async function sendOpenPhone(to: string[], content: string) {
           lastError = error instanceof Error ? error.message : `Could not reach ${base}.`;
           continue hostLoop;
         }
-        if (res.ok) {
-          delivered = true;
-          sent.push(number);
-          break hostLoop;
-        }
         const json = (await res.json().catch(() => ({}))) as {
+          data?: { id?: string; status?: string };
           message?: string;
           title?: string;
           description?: string;
           errors?: { message?: string }[];
         };
-        lastError = openPhoneError(json, `OpenPhone rejected ${number} (${res.status}).`);
-        if (res.status === 401 || res.status === 403) continue;
-        if (res.status === 404 || res.status >= 500) continue hostLoop;
+        if (!res.ok) {
+          lastError = openPhoneError(json, `OpenPhone rejected ${number} (${res.status}).`);
+          if (res.status === 401 || res.status === 403) continue;
+          if (res.status === 404 || res.status >= 500) continue hostLoop;
+          break hostLoop;
+        }
+        const messageId = json.data?.id;
+        const status = messageId
+          ? await waitForOpenPhoneStatus(base, authorization, messageId)
+          : json.data?.status ?? "sent";
+        if (status === "undelivered" || status === "failed") {
+          lastError = `${sender.number} could not deliver SMS to ${number}. Quo accepted it, but the carrier marked it ${status}. That line is likely missing A2P 10DLC registration. Use a registered Quo number in OPENPHONE_FROM.`;
+          break hostLoop;
+        }
+        delivered = true;
+        sent.push(number);
         break hostLoop;
       }
     }
     if (!delivered) errors.push(lastError);
   }
   if (errors.length) throw new Error(errors.join(" "));
-  return { from, sent, skippedSelf };
+  return { from: sender.number, sent, skippedSelf };
 }
 
 function emailHtml(input: {
@@ -396,7 +497,7 @@ export async function notifyTrackingUpdate(input: {
       try {
         await sendOpenPhone(
           phones,
-          [`${company.name} · ${facts.trackingNumber} · ${scanLabel}`, boardUrl(company.slug)].join("\n"),
+          `${company.name}: ${facts.trackingNumber} · ${scanLabel}. Reply STOP to opt out.`,
         );
         smsOk = true;
       } catch (error) {
@@ -506,10 +607,7 @@ export async function sendInviteSms(input: {
   if (!phone) return;
   await sendOpenPhone(
     [phone],
-    [
-      `${input.name || "You"} are invited to ${input.companyName} Live Board.`,
-      `Sign in: ${input.signInUrl}`,
-    ].join("\n"),
+    `${input.name || "You"} are invited to ${input.companyName} Live Board. Sign-in details were emailed. Reply STOP to opt out.`,
   );
 }
 
@@ -535,10 +633,7 @@ export async function sendTestClientSms(companyId: string, token: string) {
   }
   const result = await sendOpenPhone(
     phones,
-    [
-      `${company.name} Live Board will text this number when FedEx status changes.`,
-      boardUrl(company.slug),
-    ].join("\n"),
+    `${company.name} Live Board will text this number when FedEx status changes. Reply STOP to opt out.`,
   );
   return {
     from: result.from,
