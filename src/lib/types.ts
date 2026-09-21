@@ -4,6 +4,27 @@ import type { BoardGround } from "./logo-palette";
  *  the one slug the app may refer to by name. */
 export const SEED_SLUG = "ronin";
 
+/** What a board logo may be, and the extension each type is stored under.
+ *
+ *  One list, read by the file picker, by the line that tells an admin what
+ *  is allowed, and by the route that refuses everything else — so the three
+ *  cannot drift into disagreeing about it. */
+export const LOGO_TYPES: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/svg+xml": "svg",
+  "image/avif": "avif",
+  "image/gif": "gif",
+};
+
+export const LOGO_ACCEPT = Object.keys(LOGO_TYPES).join(",");
+
+/** Storage would take more; this is about what every client downloads on
+ *  every board load, for a mark drawn at 56px. */
+export const LOGO_MAX_BYTES = 5_000_000;
+
+export const LOGO_HINT = "PNG, JPG, SVG, AVIF or GIF · up to 5 MB";
+
 export type Role = "admin" | "tracker" | "client";
 
 export type UserRecord = {

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Plus } from "lucide-react";
 import { BusyControl } from "./ActionProgress";
+import { LOGO_ACCEPT, LOGO_HINT } from "@/lib/types";
 import {
   FALLBACK,
   groundSwatch,
@@ -114,11 +115,15 @@ export function CreateCompanyDialog({
               LOGO
               <input
                 type="file"
-                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                accept={LOGO_ACCEPT}
                 disabled={busy}
+                aria-describedby="create-logo-hint"
                 onChange={(event) => void onPickLogo(event.target.files?.[0])}
               />
             </label>
+            <p id="create-logo-hint" className="ops-meta">
+              {LOGO_HINT}
+            </p>
             <label>
               COMPANY NAME
               <input

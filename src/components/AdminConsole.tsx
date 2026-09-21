@@ -26,7 +26,15 @@ import {
 } from "@/lib/phones";
 import { ChipInput } from "./ChipInput";
 import { OpsToast, useOpsToast } from "./OpsToast";
-import { SEED_SLUG, type CompanyRecord, type Role, type SessionUser, type UserRecord } from "@/lib/types";
+import {
+  LOGO_ACCEPT,
+  LOGO_HINT,
+  SEED_SLUG,
+  type CompanyRecord,
+  type Role,
+  type SessionUser,
+  type UserRecord,
+} from "@/lib/types";
 
 type NotifyDraft = { enabled: boolean; cc: string; ccPhones: string };
 
@@ -652,15 +660,20 @@ function AdminWorkbench({
       danger: true,
     });
     if (!okRevoke) return;
-    const res = await fetch(`/api/users/${id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ disabled: true }),
-    });
-    const json = await res.json();
-    if (!res.ok) toast.show("bad", json.error ?? "Could not revoke.");
-    else toast.show("ok", `Access revoked for ${row?.email ?? "user"}.`);
-    await load();
+    setBusy({ key: "save", id, label: "REVOKING ACCESS" });
+    try {
+      const res = await fetch(`/api/users/${id}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ disabled: true }),
+      });
+      const json = await res.json();
+      if (!res.ok) toast.show("bad", json.error ?? "Could not revoke.");
+      else toast.show("ok", `Access revoked for ${row?.email ?? "user"}.`);
+      await load();
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function onDeleteUser(id: string) {
@@ -1390,7 +1403,8 @@ function AdminWorkbench({
                   LOGO
                   <input
                     type="file"
-                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    accept={LOGO_ACCEPT}
+                    aria-describedby="board-logo-hint"
                     onChange={(event) => {
                       void onLogo(selected, event.target.files?.[0]);
                       // Cleared so cancelling the preview and picking the same
@@ -1399,6 +1413,9 @@ function AdminWorkbench({
                     }}
                   />
                 </label>
+                <p id="board-logo-hint" className="ops-meta">
+                  {LOGO_HINT}
+                </p>
                 {selected.logoUrl ? (
                   <div className="ops-logo-row">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1659,7 +1676,9 @@ function AdminWorkbench({
         active={
           busy?.key === "create" ||
           busy?.key === "delete-company" ||
-          busy?.key === "brand"
+          busy?.key === "brand" ||
+          busy?.key === "save" ||
+          busy?.key === "delete"
         }
         label={busy?.label ?? ""}
       />

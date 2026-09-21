@@ -2,13 +2,7 @@ import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/session";
 import { updateCompany } from "@/lib/store";
 import { uploadCompanyLogo } from "@/lib/storage";
-
-const TYPES: Record<string, string> = {
-  "image/png": "png",
-  "image/jpeg": "jpg",
-  "image/webp": "webp",
-  "image/svg+xml": "svg",
-};
+import { LOGO_HINT, LOGO_MAX_BYTES, LOGO_TYPES } from "@/lib/types";
 
 export async function POST(
   request: Request,
@@ -22,14 +16,15 @@ export async function POST(
     if (!(file instanceof File) || !file.size) {
       return NextResponse.json({ error: "Choose a logo file." }, { status: 400 });
     }
-    // Storage takes whatever it is given; this cap is about what every client
-    // then downloads on every board load, for a mark rendered at 56px.
-    if (file.size > 5_000_000) {
-      return NextResponse.json({ error: "Logo must be under 5 MB." }, { status: 400 });
+    if (file.size > LOGO_MAX_BYTES) {
+      return NextResponse.json(
+        { error: `Logo is too large. ${LOGO_HINT}.` },
+        { status: 400 },
+      );
     }
-    const ext = TYPES[file.type];
+    const ext = LOGO_TYPES[file.type];
     if (!ext) {
-      return NextResponse.json({ error: "Use PNG, JPG, WEBP, or SVG." }, { status: 400 });
+      return NextResponse.json({ error: `Unsupported file. ${LOGO_HINT}.` }, { status: 400 });
     }
     const bytes = new Uint8Array(await file.arrayBuffer());
     let logoUrl: string;

@@ -2562,18 +2562,45 @@ button.ops-open {
   gap: 12px;
 }
 
+/* One shape for every answer: same box, same weight, same tracking, so the
+   two buttons read as two answers to one question. They differed in height,
+   padding and whether they had a visible edge at all, which made the pair look
+   like two unrelated controls that happened to sit together. Only colour
+   separates them now. */
+.confirm-actions button {
+  min-height: 40px;
+  padding: 11px 16px;
+  border: 1px solid var(--seam);
+  border-radius: var(--r-ctl);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.confirm-actions .primary {
+  border-color: var(--ivory);
+}
+
 .confirm-actions button:not(.primary):not(.danger) {
   background: transparent;
-  border: 1px solid var(--seam);
   color: var(--ivory-dim);
-  padding: 10px 14px;
-  letter-spacing: 0.08em;
 }
 
 .confirm-actions button:not(.primary):not(.danger):hover,
 .confirm-actions button:not(.primary):not(.danger):focus-visible {
   color: var(--ivory);
   border-color: var(--ivory);
+}
+
+/* The destructive answer carries its edge at rest rather than only on hover —
+   it is the one that needs to be recognised before it is reached for. */
+.confirm-actions .danger {
+  border-color: color-mix(in oklab, var(--danger) 52%, transparent);
+}
+
+.confirm-actions .danger:hover,
+.confirm-actions .danger:focus-visible {
+  border-color: var(--danger);
+  background: color-mix(in oklab, var(--danger) 12%, transparent);
 }
 
 .ops-stage .shipments-head b {

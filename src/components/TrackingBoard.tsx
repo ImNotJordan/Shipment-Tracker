@@ -12,6 +12,7 @@ import type { PublicBoard, PublicShipment, SessionUser } from "@/lib/types";
 import { ThemeToggle, useTheme } from "./ThemeToggle";
 import { ActionProgress } from "./ActionProgress";
 import { mapPalette } from "@/lib/logo-palette";
+import { cutoutFromUrl } from "@/lib/logo-cutout";
 import { ConfirmProvider, closeViewAsTab, useConfirm } from "./ConfirmDialog";
 
 function formatTracking(value: string) {
@@ -99,6 +100,25 @@ function TrackingBoardInner({
   const [signingOut, setSigningOut] = useState(false);
   const detailRef = useRef<HTMLElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
+  /* A client's board shows the mark, not the tile it was supplied on. The cut
+     is done here and not on the stored file: the console's own list keeps the
+     original, so a logo that cuts badly is still visible as it was uploaded and
+     nothing has been destroyed to find that out. Null until it resolves, and
+     null for good if there was no card or the canvas would not be read. */
+  const [cutout, setCutout] = useState<string | null>(null);
+  useEffect(() => {
+    const url = board.company.logoUrl;
+    setCutout(null);
+    if (!url) return;
+    let live = true;
+    void cutoutFromUrl(url).then((next) => {
+      if (live) setCutout(next);
+    });
+    return () => {
+      live = false;
+    };
+  }, [board.company.logoUrl]);
+
   // The board's own colours, rebuilt to read on whichever map is underneath.
   const night = useTheme() !== "light";
   const pins = useMemo(
@@ -233,7 +253,7 @@ function TrackingBoardInner({
           <div className="ident-left">
             {board.company.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={board.company.logoUrl} alt="" className="board-logo" />
+              <img src={cutout ?? board.company.logoUrl} alt="" className="board-logo" />
             ) : null}
             <h1 className="wordmark" data-region="wordmark">
               {board.company.name.toUpperCase()}
@@ -251,26 +271,35 @@ function TrackingBoardInner({
               LAST FETCH {lastFetch ? formatWhen(lastFetch) : clock}
               <span className="pip" aria-hidden />
             </p>
-            {preview && user ? (
-              <nav className="ops-nav" aria-label="Preview">
+            {user ? (
+              <nav className="ops-nav" aria-label={preview ? "Preview" : "Account"}>
+                {/* Who you are signed in as, whoever you are. A client saw only
+                    a sign-out button, which is the one console that left you
+                    guessing which account you were on. */}
                 <span className="ops-who">
                   {user.email}
                   <em>{user.role}</em>
                 </span>
-                <button type="button" className="board-signout" onClick={() => void closePreview()}>
-                  Close preview
-                </button>
+                {preview ? (
+                  <button
+                    type="button"
+                    className="board-signout"
+                    onClick={() => void closePreview()}
+                  >
+                    Close preview
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="board-signout"
+                    onClick={() => void signOut()}
+                    disabled={signingOut}
+                    aria-busy={signingOut}
+                  >
+                    {signingOut ? "SIGNING OUT" : "Sign out"}
+                  </button>
+                )}
               </nav>
-            ) : user ? (
-              <button
-                  type="button"
-                  className="board-signout"
-                  onClick={() => void signOut()}
-                  disabled={signingOut}
-                  aria-busy={signingOut}
-                >
-                  {signingOut ? "SIGNING OUT" : "Sign out"}
-                </button>
             ) : null}
           </div>
         </header>

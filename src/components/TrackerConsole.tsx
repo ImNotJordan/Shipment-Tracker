@@ -401,8 +401,15 @@ function TrackerWorkbench({
                       <input
                         value={edits[item.id] ?? item.trackingNumber}
                         onChange={(event) =>
-                          setEdits((current) => ({ ...current, [item.id]: event.target.value }))
+                          setEdits((current) => ({
+                            ...current,
+                            [item.id]: trackingDigits(event.target.value),
+                          }))
                         }
+                        inputMode="numeric"
+                        autoComplete="off"
+                        spellCheck={false}
+                        maxLength={TRACKING_DIGITS}
                         aria-label={`Edit ${item.trackingNumber}`}
                         disabled={viewing}
                       />
