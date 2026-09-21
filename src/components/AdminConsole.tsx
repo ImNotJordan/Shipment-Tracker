@@ -39,6 +39,7 @@ function notifyDraftFrom(company: CompanyRecord): NotifyDraft {
 }
 
 type UserEdit = {
+  name: string;
   role: Role;
   companyId: string;
   phone: string;
@@ -47,6 +48,7 @@ type UserEdit = {
 function draftFor(row: UserRecord, edits: Record<string, UserEdit>): UserEdit {
   return (
     edits[row.id] ?? {
+      name: row.name ?? "",
       role: row.role,
       companyId: row.companyId ?? "",
       phone: row.phone ?? "",
@@ -63,6 +65,7 @@ function draftDirty(row: UserRecord, edit: UserEdit) {
   const phoneInvalid = edit.role === "client" && Boolean(edit.phone.trim()) && !nextPhone;
   return (
     phoneInvalid ||
+    edit.name.trim() !== (row.name ?? "") ||
     edit.role !== row.role ||
     nextCompany !== (row.companyId ?? null) ||
     nextPhone !== (row.phone ?? null)
@@ -709,6 +712,9 @@ function AdminWorkbench({
     if (!draftDirty(row, edit)) return;
 
     const changes: string[] = [];
+    if (edit.name.trim() !== (row.name ?? "")) {
+      changes.push(edit.name.trim() ? `name to ${edit.name.trim()}` : "clear the name");
+    }
     if (edit.role !== row.role) changes.push(`role to ${edit.role}`);
     if (nextCompany !== (row.companyId ?? null)) {
       const companyName =
@@ -731,6 +737,7 @@ function AdminWorkbench({
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          name: edit.name.trim(),
           role: edit.role,
           companyId: nextCompany,
           phone: nextPhone,
@@ -1065,7 +1072,8 @@ function AdminWorkbench({
                     : companies.find((item) => item.id === row.companyId)?.name ?? "No company";
                 const edit = draftFor(row, edits);
                 const dirty = draftDirty(row, edit);
-                const locked = row.id === user.id || Boolean(busy);
+                const self = row.id === user.id;
+                const locked = self || Boolean(busy);
                 return (
                 <li
                   key={row.id}
@@ -1112,6 +1120,20 @@ function AdminWorkbench({
                         </div>
                       </dl>
                       <div className="user-fields">
+                        {/* Read-only on every row, this one included. A name is
+                            set when the account is invited; the console shows it
+                            rather than offering to rewrite it. Flip `readOnly`
+                            off here if an admin should be able to rename people. */}
+                        <label>
+                          NAME
+                          <input
+                            value={edit.name}
+                            placeholder={row.email}
+                            readOnly
+                            disabled
+                            aria-label={`Name for ${row.email}`}
+                          />
+                        </label>
                         <label>
                           ROLE
                           <select
@@ -1171,7 +1193,7 @@ function AdminWorkbench({
                         </label>
                       </div>
                       <div className="user-card-acts">
-                        {row.id === user.id ? (
+                        {self ? (
                           <span className="ops-meta">
                             This is the account you are signed in with.
                           </span>

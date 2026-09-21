@@ -238,13 +238,18 @@ async function collapseDuplicateEmails(token: string) {
 async function seedNow() {
   const admin = await getBootstrapTokens();
   const token = admin.idToken;
-  const kind = bootstrapCredentials().kind;
   /* The seed exists to make sure the bootstrap admin CAN sign in, not to keep
      rewriting it. Re-stamping the whole document on every boot undid every edit
-     an operator had made to that account — most visibly its name, which kept
-     reappearing on whichever account ADMIN_EMAIL happens to point at, however
-     many times it was corrected. An account that already exists keeps
-     everything, and only the two fields that grant the access are enforced. */
+     an operator had made to that account, so an account that already exists
+     keeps everything and only the two fields that grant the access are enforced.
+
+     It also no longer names anyone. It used to hardcode a person's name and put
+     it on whichever account PLATFORM_ADMIN_EMAIL points at, so that account wore
+     a name chosen in source rather than its own. A new record now takes its name
+     from the environment, beside the address and password that already live
+     there — and an existing record's name is never touched, by this or anything
+     else here. A seed creates; it does not correct. Trying to correct one here
+     is what blanked a name that was already right. */
   const seeded = await getDocument("users", admin.localId, token);
   if (seeded) {
     await patchDocument("users", admin.localId, { role: "admin", disabled: false }, token);
@@ -253,7 +258,7 @@ async function seedNow() {
       admin.localId,
       {
         email: admin.email,
-        name: kind === "platform" ? "Guilmar Quimba" : "Platform Admin",
+        name: process.env.PLATFORM_ADMIN_NAME?.trim() ?? "",
         role: "admin",
         companyId: null,
         companySlug: null,
