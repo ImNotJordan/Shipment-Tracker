@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/session";
 import { parseEmailList } from "@/lib/emails";
-import { publicAppUrl, sendInviteEmail } from "@/lib/notify";
+import { publicAppUrlFromRequest, sendInviteEmail } from "@/lib/notify";
 import { isRole } from "@/lib/access";
 import type { Role } from "@/lib/types";
 
@@ -16,7 +16,6 @@ export async function POST(request: Request) {
       password?: string;
       pdfBase64?: string;
       cc?: string | string[];
-      signInUrl?: string;
     } | null;
     const email = body?.email?.trim().toLowerCase() ?? "";
     const password = body?.password ?? "";
@@ -37,7 +36,7 @@ export async function POST(request: Request) {
       password,
       role,
       companyName: body.companyName?.trim() || "Live Board",
-      signInUrl: body.signInUrl || `${publicAppUrl(new URL(request.url).origin)}/login`,
+      signInUrl: `${publicAppUrlFromRequest(request)}/login`,
       pdf,
     });
     return NextResponse.json({ emailed: true });

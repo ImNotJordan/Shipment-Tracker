@@ -2173,9 +2173,9 @@ a.primary {
   border-color: var(--seam);
 }
 
-/* What the account is, then the three things an admin changes about it. Name
-   and email are stated, never typed: the address is the Firebase identity and
-   renaming it here would leave the two out of step. */
+/* What the account is, then the things an admin changes about it. Email is
+   the Firebase identity, so it stays a fact. Name, role, phone and company
+   are edited in the fields below. */
 .user-card {
   display: grid;
   gap: 14px;

@@ -124,15 +124,43 @@ async function sendResend(from: string, payload: Record<string, unknown>) {
   }
 }
 
+const LIVE_APP_URL = "https://hhi-shipiment-tracker.web.app";
+
+function isPublicAppOrigin(value: string) {
+  try {
+    const url = new URL(value.includes("://") ? value : `https://${value}`);
+    const host = url.hostname.replace(/^\[|\]$/g, "").toLowerCase();
+    if (!host) return false;
+    if (
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host === "0.0.0.0" ||
+      host === "::" ||
+      host === "::1" ||
+      host.endsWith(".local")
+    ) {
+      return false;
+    }
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function publicAppUrl(origin?: string) {
-  const live = "https://hhi-shipiment-tracker.web.app";
-  for (const raw of [origin, process.env.NEXT_PUBLIC_APP_URL, live]) {
+  for (const raw of [origin, process.env.NEXT_PUBLIC_APP_URL, LIVE_APP_URL]) {
     const value = (raw ?? "").trim().replace(/\/$/, "");
-    if (!value) continue;
-    if (/localhost|127\.0\.0\.1/i.test(value)) continue;
+    if (!value || !isPublicAppOrigin(value)) continue;
     return value;
   }
-  return live;
+  return LIVE_APP_URL;
+}
+
+export function publicAppUrlFromRequest(request: Request) {
+  const forwardedHost = (request.headers.get("x-forwarded-host") || "").split(",")[0].trim();
+  const proto = (request.headers.get("x-forwarded-proto") || "https").split(",")[0].trim() || "https";
+  const forwarded = forwardedHost ? `${proto}://${forwardedHost}` : "";
+  return publicAppUrl(forwarded || new URL(request.url).origin);
 }
 
 function boardUrl(slug: string) {

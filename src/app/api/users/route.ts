@@ -3,7 +3,7 @@ import { FirebaseAuthError, signUpWithPassword } from "@/lib/firebase-auth";
 import { requireRole } from "@/lib/session";
 import { credentialsPdf, generatePassword } from "@/lib/credentials-pdf";
 import { parseEmailList } from "@/lib/emails";
-import { publicAppUrl, sendInviteEmail, sendInviteSms } from "@/lib/notify";
+import { publicAppUrlFromRequest, sendInviteEmail, sendInviteSms } from "@/lib/notify";
 import { normalizePhone, phoneProblem } from "@/lib/phones";
 import {
   getCompanyById,
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
       idToken,
     );
 
-    const signInUrl = `${publicAppUrl(new URL(request.url).origin)}/login`;
+    const signInUrl = `${publicAppUrlFromRequest(request)}/login`;
     const pdf = await credentialsPdf({
       name: name || email,
       email,

@@ -1116,10 +1116,6 @@ function AdminWorkbench({
                     <div className="user-card">
                       <dl className="user-facts">
                         <div>
-                          <dt>NAME</dt>
-                          <dd>{row.name || "—"}</dd>
-                        </div>
-                        <div>
                           <dt>EMAIL</dt>
                           <dd>{row.email}</dd>
                         </div>
@@ -1133,18 +1129,20 @@ function AdminWorkbench({
                         </div>
                       </dl>
                       <div className="user-fields">
-                        {/* Read-only on every row, this one included. A name is
-                            set when the account is invited; the console shows it
-                            rather than offering to rewrite it. Flip `readOnly`
-                            off here if an admin should be able to rename people. */}
                         <label>
                           NAME
                           <input
                             value={edit.name}
                             placeholder={row.email}
-                            readOnly
-                            disabled
+                            disabled={Boolean(busy)}
                             aria-label={`Name for ${row.email}`}
+                            onChange={(event) => patchEdit(row.id, { name: event.target.value })}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault();
+                                void onSaveUser(row.id);
+                              }
+                            }}
                           />
                         </label>
                         <label>
@@ -1152,6 +1150,7 @@ function AdminWorkbench({
                           <select
                             value={edit.role}
                             disabled={locked}
+                            aria-label={`Role for ${row.email}`}
                             onChange={(event) => {
                               const role = event.target.value as Role;
                               patchEdit(row.id, {
@@ -1206,20 +1205,20 @@ function AdminWorkbench({
                         </label>
                       </div>
                       <div className="user-card-acts">
+                        <button
+                          className="ops-key"
+                          type="button"
+                          disabled={!dirty || Boolean(busy)}
+                          onClick={() => void onSaveUser(row.id)}
+                        >
+                          {busy?.key === "save" && busy.id === row.id ? busy.label : "SAVE"}
+                        </button>
                         {self ? (
                           <span className="ops-meta">
-                            This is the account you are signed in with.
+                            You can rename this account. Role and access stay locked while you are signed in on it.
                           </span>
                         ) : (
                           <>
-                            <button
-                              className="ops-key"
-                              type="button"
-                              disabled={!dirty || Boolean(busy)}
-                              onClick={() => void onSaveUser(row.id)}
-                            >
-                              {busy?.key === "save" && busy.id === row.id ? busy.label : "SAVE"}
-                            </button>
                             {row.disabled ? null : (
                               <button
                                 className="link-danger"
